@@ -1,0 +1,1022 @@
+[00:00:01.030] Server  LOG     ✓ Ready in 720ms
+[00:00:01.777] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:22.827] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:04:05.924] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:04:46.805] Server  LOG     ✓ Compiled in 330ms
+[00:05:17.570] Server  LOG     ✓ Compiled in 21ms
+[00:05:18.134] Browser ERROR   The final argument passed to %s changed size between renders. The order and size of this array must remain constant.
+
+Previous: %s
+Incoming: %s useEffect [[object Object], [object Object]] [[object Object]]
+[00:05:18.149] Browser ERROR   The final argument passed to %s changed size between renders. The order and size of this array must remain constant.
+
+Previous: %s
+Incoming: %s useEffect [[object Object], [object Object]] [[object Object]]
+[00:07:17.443] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:07:17.610] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:09:55.073] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:09:55.172] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:09:57.400] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:09:57.488] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:10:02.132] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:10:02.279] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:12:17.219] Server  LOG     ✓ Compiled in 47ms
+[00:12:41.346] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:17:52.251] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:22:55.418] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:22:55.638] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:22:55.975] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:22:56.223] Server  ERROR   ⨯ ReferenceError: window is not defined
+[00:22:56.458] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:22:56.580] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:22:56.944] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:22:57.368] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.369] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.369] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.370] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.371] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.372] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.372] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.373] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.374] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.375] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.375] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.376] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.377] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.377] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.378] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.379] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.380] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.381] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.381] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.382] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.383] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.384] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.384] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.385] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.386] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.386] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.387] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.387] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.389] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.389] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.390] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.390] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.391] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.392] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.393] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.394] Server  ERROR   ⨯ ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:22:57.612] Server  LOG     ✓ Compiled in 0ms
+[00:22:57.718] Browser ERROR   ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[00:22:58.149] Browser ERROR   ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[00:22:58.149] Browser ERROR   ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[00:22:58.151] Browser ERROR   ./src/app/login/page.tsx:12:1
+Module not found: Can't resolve '@/components/FirebaseEmailAuth'
+  10 | } from "firebase/auth";
+  11 | import { auth } from "@/lib/firebase";
+> 12 | import { FirebaseEmailAuth } from "@/components/FirebaseEmailAuth";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  13 |
+  14 | export default function LoginPage() {
+  15 |   const router = useRouter();
+
+Import map: aliased to relative './src/components/FirebaseEmailAuth' inside of [project]/
+
+Import traces:
+  Client Component Browser:
+    ./src/app/login/page.tsx [Client Component Browser]
+    ./src/app/login/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/login/page.tsx [Client Component SSR]
+    ./src/app/login/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+[00:33:28.874] Server  LOG     ✓ Compiled in 45ms
