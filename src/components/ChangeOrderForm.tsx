@@ -244,6 +244,10 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
     const amountRequested =
       laborCost + mat + equip + sub + other;
     const amountApproved = laborMarkedUp + materialMarkedUp + subMarkedUp;
+    const profitMarginPct =
+      amountApproved > 0
+        ? ((amountApproved - amountRequested) / amountApproved) * 100
+        : null;
 
     return {
       laborCost,
@@ -253,6 +257,7 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
       subMarkedUp,
       amountRequested,
       amountApproved,
+      profitMarginPct,
     };
   }, [
     laborHours,
@@ -574,6 +579,30 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
         <h2 className="border-b border-emerald-100 pb-2 text-sm font-semibold uppercase tracking-wide text-gray-700">
           Calculated totals
         </h2>
+
+        {/* Primary figures: approved + margin */}
+        <div className="mt-4 flex flex-col gap-3 rounded-lg bg-emerald-100/80 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between">
+          <div>
+            <span className="text-xs font-medium uppercase tracking-wide text-emerald-900/80">
+              Amount approved
+            </span>
+            <p className="text-lg font-semibold text-emerald-900">
+              {formatCurrency(totals.amountApproved)}
+            </p>
+          </div>
+          <div className="sm:text-right">
+            <span className="text-xs font-medium uppercase tracking-wide text-emerald-900/80">
+              Profit margin %
+            </span>
+            <p className="text-lg font-semibold text-emerald-900">
+              {totals.profitMarginPct != null
+                ? `${totals.profitMarginPct.toFixed(1)}%`
+                : "—"}
+            </p>
+          </div>
+        </div>
+
+        {/* Secondary breakdown */}
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
           <div>
             <span className="text-gray-600">Labor cost</span>
@@ -609,12 +638,6 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
             <span className="text-gray-600">Amount requested</span>
             <p className="font-semibold text-gray-900">
               {formatCurrency(totals.amountRequested)}
-            </p>
-          </div>
-          <div>
-            <span className="text-gray-600">Amount approved</span>
-            <p className="font-semibold text-emerald-800">
-              {formatCurrency(totals.amountApproved)}
             </p>
           </div>
         </div>

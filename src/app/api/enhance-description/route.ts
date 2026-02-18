@@ -3,10 +3,11 @@ import { NextResponse } from "next/server";
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
 export async function POST(request: Request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const rawKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = typeof rawKey === "string" ? rawKey.trim() : "";
   if (!apiKey) {
     return NextResponse.json(
-      { error: "Enhancement is not configured (missing API key)." },
+      { error: "Enhancement is not configured (missing API key). Add ANTHROPIC_API_KEY to .env.local and restart the dev server." },
       { status: 503 }
     );
   }
@@ -66,8 +67,12 @@ OUTPUT: Only the enhanced description, no preamble or explanation.`;
 
     if (!res.ok) {
       const message = (data.error?.message as string) || res.statusText || "Anthropic API error";
+      const isAuthError = res.status === 401 || /invalid x-api-key|invalid api key/i.test(message);
+      const userMessage = isAuthError
+        ? "Invalid Anthropic API key. Check ANTHROPIC_API_KEY in .env.local (no quotes or spaces), then restart the dev server."
+        : message;
       return NextResponse.json(
-        { error: message },
+        { error: userMessage },
         { status: 500 }
       );
     }

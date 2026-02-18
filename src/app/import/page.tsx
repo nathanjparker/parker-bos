@@ -202,8 +202,16 @@ export default function ImportPage() {
           query(collection(db, "companies"), where("name", "==", name))
         );
         if (!existing.empty) {
-          companyIds[name] = existing.docs[0].id;
-          addLog(`  ↳ ${name} already exists — skipped`, "warn");
+          const existingDoc = existing.docs[0];
+          companyIds[name] = existingDoc.id;
+          // Patch missing type field on previously-imported records
+          if (!existingDoc.data().type) {
+            const { updateDoc, doc: firestoreDoc } = await import("firebase/firestore");
+            await updateDoc(firestoreDoc(db, "companies", existingDoc.id), { type: "GC" });
+            addLog(`  ↳ ${name} — patched missing type field`, "success");
+          } else {
+            addLog(`  ↳ ${name} already exists — skipped`, "warn");
+          }
           continue;
         }
         const ref = await addDoc(collection(db, "companies"), {

@@ -9,6 +9,7 @@ import { getFirebaseAuth } from "@/lib/firebase";
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Jobs", href: "/jobs" },
+  { label: "Companies", href: "/companies" },
   { label: "Change Orders", href: "/change-orders" },
   { label: "Purchase Orders", href: "/pos", comingSoon: true },
   { label: "Files", href: "/files", comingSoon: true },

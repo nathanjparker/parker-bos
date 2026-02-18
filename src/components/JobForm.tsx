@@ -1,73 +1,85 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   addDoc,
   collection,
   doc,
+  onSnapshot,
+  orderBy,
+  query,
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { PROJECT_PHASES, type Job, type ProjectPhase } from "@/types/jobs";
+import { type Company } from "@/types/companies";
+import ContactPicker from "@/components/ContactPicker";
+
+type TeamField = {
+  id: string;
+  name: string;
+};
 
 type FormValues = {
   jobName: string;
   projectPhase: ProjectPhase;
+  gcId: string;
   gcName: string;
   siteAddress: string;
   siteCity: string;
   siteState: string;
   siteZip: string;
-  estimatorName: string;
-  pmName: string;
-  superintendentName: string;
   originalContractValue: string;
+  estimator: TeamField;
+  pm: TeamField;
+  superintendent: TeamField;
 };
+
+const EMPTY_TEAM: TeamField = { id: "", name: "" };
 
 const EMPTY: FormValues = {
   jobName: "",
   projectPhase: "Lead",
+  gcId: "",
   gcName: "",
   siteAddress: "",
   siteCity: "",
   siteState: "WA",
   siteZip: "",
-  estimatorName: "",
-  pmName: "",
-  superintendentName: "",
   originalContractValue: "",
+  estimator: EMPTY_TEAM,
+  pm: EMPTY_TEAM,
+  superintendent: EMPTY_TEAM,
 };
 
 function jobToForm(job: Job): FormValues {
   return {
     jobName: job.jobName ?? "",
     projectPhase: job.projectPhase ?? "Lead",
+    gcId: job.gcId ?? "",
     gcName: job.gcName ?? "",
     siteAddress: job.siteAddress ?? "",
     siteCity: job.siteCity ?? "",
     siteState: job.siteState ?? "WA",
     siteZip: job.siteZip ?? "",
-    estimatorName: job.estimatorName ?? "",
-    pmName: job.pmName ?? "",
-    superintendentName: job.superintendentName ?? "",
     originalContractValue: job.originalContractValue
       ? String(job.originalContractValue)
       : "",
+    estimator: { id: job.estimatorId ?? "", name: job.estimatorName ?? "" },
+    pm: { id: job.pmId ?? "", name: job.pmName ?? "" },
+    superintendent: {
+      id: job.superintendentId ?? "",
+      name: job.superintendentName ?? "",
+    },
   };
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-600">
         {label}
       </label>
       {children}
@@ -86,14 +98,36 @@ export default function JobForm({
   createdBy: string;
 }) {
   const router = useRouter();
-  const [values, setValues] = useState<FormValues>(
-    job ? jobToForm(job) : EMPTY
-  );
+  const [values, setValues] = useState<FormValues>(job ? jobToForm(job) : EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, "companies"), orderBy("name", "asc"));
+    return onSnapshot(q, (snap) => {
+      setCompanies(
+        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Company, "id">) }))
+      );
+    });
+  }, []);
 
   function set(field: keyof FormValues, value: string) {
     setValues((v) => ({ ...v, [field]: value }));
+  }
+
+  function setTeam(field: "estimator" | "pm" | "superintendent", id: string, name: string) {
+    setValues((v) => ({ ...v, [field]: { id, name } }));
+  }
+
+  function handleGcChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const gcId = e.target.value;
+    const company = companies.find((c) => c.id === gcId);
+    setValues((v) => ({
+      ...v,
+      gcId,
+      gcName: company?.name ?? "",
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -108,17 +142,21 @@ export default function JobForm({
     const payload: Partial<Job> = {
       jobName: values.jobName.trim(),
       projectPhase: values.projectPhase,
-      gcName: values.gcName.trim() || undefined,
+      gcId: values.gcId || undefined,
+      gcName: values.gcName || undefined,
       siteAddress: values.siteAddress.trim() || undefined,
       siteCity: values.siteCity.trim() || undefined,
       siteState: values.siteState.trim() || undefined,
       siteZip: values.siteZip.trim() || undefined,
-      estimatorName: values.estimatorName.trim() || undefined,
-      pmName: values.pmName.trim() || undefined,
-      superintendentName: values.superintendentName.trim() || undefined,
       originalContractValue: values.originalContractValue
         ? Number(values.originalContractValue.replace(/[^0-9.]/g, ""))
         : undefined,
+      estimatorId: values.estimator.id || undefined,
+      estimatorName: values.estimator.name || undefined,
+      pmId: values.pm.id || undefined,
+      pmName: values.pm.name || undefined,
+      superintendentId: values.superintendent.id || undefined,
+      superintendentName: values.superintendent.name || undefined,
     };
 
     try {
@@ -155,7 +193,7 @@ export default function JobForm({
 
       {/* Core */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-gray-900 uppercase tracking-wide">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
           Job Info
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -175,9 +213,7 @@ export default function JobForm({
             <select
               className={inputCls}
               value={values.projectPhase}
-              onChange={(e) =>
-                set("projectPhase", e.target.value as ProjectPhase)
-              }
+              onChange={(e) => set("projectPhase", e.target.value as ProjectPhase)}
             >
               {PROJECT_PHASES.map((p) => (
                 <option key={p} value={p}>
@@ -187,13 +223,28 @@ export default function JobForm({
             </select>
           </Field>
           <Field label="General Contractor">
-            <input
-              type="text"
-              className={inputCls}
-              placeholder="GC company name"
-              value={values.gcName}
-              onChange={(e) => set("gcName", e.target.value)}
-            />
+            <select className={inputCls} value={values.gcId} onChange={handleGcChange}>
+              <option value="">Select a GC</option>
+              {companies
+                .filter((c) => c.type === "GC")
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              {/* Show non-GC companies in a separate group */}
+              {companies.filter((c) => c.type !== "GC").length > 0 && (
+                <optgroup label="Other Companies">
+                  {companies
+                    .filter((c) => c.type !== "GC")
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.type})
+                      </option>
+                    ))}
+                </optgroup>
+              )}
+            </select>
           </Field>
           <Field label="Original Contract Value">
             <input
@@ -209,7 +260,7 @@ export default function JobForm({
 
       {/* Site */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-gray-900 uppercase tracking-wide">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
           Site Address
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -257,37 +308,34 @@ export default function JobForm({
 
       {/* Team */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-gray-900 uppercase tracking-wide">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-gray-500">
           Team
         </h2>
+        <p className="mb-4 text-xs text-gray-500">
+          Select from your contacts directory.{" "}
+          <a href="/companies" target="_blank" className="text-blue-600 hover:underline">
+            Manage contacts →
+          </a>
+        </p>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Estimator">
-            <input
-              type="text"
-              className={inputCls}
-              placeholder="Name"
-              value={values.estimatorName}
-              onChange={(e) => set("estimatorName", e.target.value)}
-            />
-          </Field>
-          <Field label="Project Manager">
-            <input
-              type="text"
-              className={inputCls}
-              placeholder="Name"
-              value={values.pmName}
-              onChange={(e) => set("pmName", e.target.value)}
-            />
-          </Field>
-          <Field label="Superintendent">
-            <input
-              type="text"
-              className={inputCls}
-              placeholder="Name"
-              value={values.superintendentName}
-              onChange={(e) => set("superintendentName", e.target.value)}
-            />
-          </Field>
+          <ContactPicker
+            label="Estimator"
+            value={values.estimator.id}
+            onChange={(id, name) => setTeam("estimator", id, name)}
+            placeholder="Select estimator"
+          />
+          <ContactPicker
+            label="Project Manager"
+            value={values.pm.id}
+            onChange={(id, name) => setTeam("pm", id, name)}
+            placeholder="Select PM"
+          />
+          <ContactPicker
+            label="Superintendent"
+            value={values.superintendent.id}
+            onChange={(id, name) => setTeam("superintendent", id, name)}
+            placeholder="Select super"
+          />
         </div>
       </div>
 

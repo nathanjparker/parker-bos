@@ -128,12 +128,18 @@ export function ChangeOrderReview({ coId, onClose }: ChangeOrderReviewProps) {
     const other = Number(co.otherCost) || 0;
     const subPct = Number(subMarkup) || 0;
 
+    const equip = Number(co.equipmentCost) || 0;
     const laborCost = hours * burden;
     const laborBilling = hours * rate;
     const laborMarkedUp = laborBilling;
     const materialMarkedUp = mat * (1 + matPct / 100);
     const subMarkedUp = (sub + other) * (1 + subPct / 100);
+    const amountRequested = laborCost + mat + equip + sub + other;
     const amountApproved = laborMarkedUp + materialMarkedUp + subMarkedUp;
+    const profitMarginPct =
+      amountApproved > 0
+        ? ((amountApproved - amountRequested) / amountApproved) * 100
+        : null;
 
     return {
       laborCost,
@@ -141,7 +147,9 @@ export function ChangeOrderReview({ coId, onClose }: ChangeOrderReviewProps) {
       laborMarkedUp,
       materialMarkedUp,
       subMarkedUp,
+      amountRequested,
       amountApproved,
+      profitMarginPct,
     };
   }, [co, laborBurden, laborBillingRate, materialMarkup, subMarkup]);
 
@@ -445,6 +453,30 @@ export function ChangeOrderReview({ coId, onClose }: ChangeOrderReviewProps) {
               <h3 className="border-b border-emerald-100 pb-2 text-sm font-semibold uppercase tracking-wide text-gray-700">
                 Calculated totals
               </h3>
+
+              {/* Primary figures: approved + margin */}
+              <div className="mt-4 flex flex-col gap-3 rounded-lg bg-emerald-100/80 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between">
+                <div>
+                  <span className="text-xs font-medium uppercase tracking-wide text-emerald-900/80">
+                    Amount approved
+                  </span>
+                  <p className="text-lg font-semibold text-emerald-900">
+                    {formatCurrency(totals.amountApproved)}
+                  </p>
+                </div>
+                <div className="sm:text-right">
+                  <span className="text-xs font-medium uppercase tracking-wide text-emerald-900/80">
+                    Profit margin %
+                  </span>
+                  <p className="text-lg font-semibold text-emerald-900">
+                    {totals.profitMarginPct != null
+                      ? `${totals.profitMarginPct.toFixed(1)}%`
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Secondary breakdown */}
               <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
                 <div>
                   <span className="text-gray-600">Labor cost</span>
@@ -467,8 +499,8 @@ export function ChangeOrderReview({ coId, onClose }: ChangeOrderReviewProps) {
                   <p className="font-medium text-gray-900">{formatCurrency(totals.subMarkedUp)}</p>
                 </div>
                 <div>
-                  <span className="text-gray-600">Amount approved</span>
-                  <p className="font-semibold text-emerald-800">{formatCurrency(totals.amountApproved)}</p>
+                  <span className="text-gray-600">Amount requested</span>
+                  <p className="font-medium text-gray-900">{formatCurrency(totals.amountRequested)}</p>
                 </div>
               </div>
             </div>

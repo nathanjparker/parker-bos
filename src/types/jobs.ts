@@ -39,8 +39,11 @@ export interface Job {
   siteCity?: string;
   siteState?: string;
   siteZip?: string;
+  estimatorId?: string;
   estimatorName?: string;
+  pmId?: string;
   pmName?: string;
+  superintendentId?: string;
   superintendentName?: string;
   originalContractValue?: number;
   currentContractValue?: number;
