@@ -12,6 +12,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { ChangeOrderReview } from "@/components/ChangeOrderReview";
+import AppShell from "@/components/AppShell";
 import { db } from "@/lib/firebase";
 
 type COStatus =
@@ -170,6 +171,7 @@ export default function ChangeOrdersPage() {
   }
 
   return (
+    <AppShell>
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -320,7 +322,7 @@ export default function ChangeOrdersPage() {
                       </button>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                      {row.jobNumber} — {row.jobName}
+                      {row.jobName}
                     </td>
                     <td className="max-w-[200px] px-4 py-3 text-sm text-gray-600">
                       {truncate(row.subject || row.description, 60)}
@@ -367,5 +369,6 @@ export default function ChangeOrdersPage() {
         />
       )}
     </div>
+    </AppShell>
   );
 }

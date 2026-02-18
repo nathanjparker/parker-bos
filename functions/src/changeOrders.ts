@@ -30,9 +30,9 @@ export const generateCONumber = onDocumentCreated(
       return;
     }
 
-    const jobNumber = data.jobNumber;
-    if (!jobNumber || typeof jobNumber !== "string") {
-      console.warn("[generateCONumber] Missing or invalid jobNumber for CO:", coId);
+    const jobId = data.jobId;
+    if (!jobId || typeof jobId !== "string") {
+      console.warn("[generateCONumber] Missing or invalid jobId for CO:", coId);
       return;
     }
 
@@ -40,14 +40,14 @@ export const generateCONumber = onDocumentCreated(
       const db = getFirestore();
       const existingSnapshot = await db
         .collection("changeOrders")
-        .where("jobNumber", "==", jobNumber)
+        .where("jobId", "==", jobId)
         .get();
 
       const count = existingSnapshot.size;
-      const paddedCount = String(count).padStart(3, "0");
-      const coNumber = `${jobNumber}-CO-${paddedCount}`;
+      const paddedCount = String(count).padStart(2, "0");
+      const coNumber = `CO-${paddedCount}`;
 
-      console.log("[generateCONumber] jobNumber:", jobNumber, "count:", count, "coNumber:", coNumber);
+      console.log("[generateCONumber] jobId:", jobId, "count:", count, "coNumber:", coNumber);
 
       await snap.ref.update({ coNumber });
       console.log("[generateCONumber] Updated CO", coId, "with coNumber:", coNumber);

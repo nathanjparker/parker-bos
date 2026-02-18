@@ -190,7 +190,7 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
         console.log("Loading jobs from Firestore...");
         const q = query(
           collection(db, "Jobs"),
-          where("projectPhase", "==", "Active")
+          where("projectPhase", "in", ["Active", "Awarded"])
         );
         const snapshot = await getDocs(q);
         console.log("Jobs snapshot size:", snapshot.size);
@@ -366,7 +366,7 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
               </option>
               {jobs.map((job) => (
                 <option key={job.id} value={job.id}>
-                  {job.jobNumber} — {job.jobName}
+                  {job.jobName}
                 </option>
               ))}
             </select>
