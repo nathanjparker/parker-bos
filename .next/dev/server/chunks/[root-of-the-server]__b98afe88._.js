@@ -49,17 +49,8 @@ __turbopack_context__.s([
     ()=>POST
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/next@16.1.6_@babel+core@7.2_9d8d1bf7a8807769963b5151bd760c41/node_modules/next/server.js [app-route] (ecmascript)");
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$anthropic$2d$ai$2b$sdk$40$0$2e$75$2e$0_zod$40$4$2e$3$2e$6$2f$node_modules$2f40$anthropic$2d$ai$2f$sdk$2f$index$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/@anthropic-ai+sdk@0.75.0_zod@4.3.6/node_modules/@anthropic-ai/sdk/index.mjs [app-route] (ecmascript) <locals>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$anthropic$2d$ai$2b$sdk$40$0$2e$75$2e$0_zod$40$4$2e$3$2e$6$2f$node_modules$2f40$anthropic$2d$ai$2f$sdk$2f$client$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__$3c$export__Anthropic__as__default$3e$__ = __turbopack_context__.i("[project]/node_modules/.pnpm/@anthropic-ai+sdk@0.75.0_zod@4.3.6/node_modules/@anthropic-ai/sdk/client.mjs [app-route] (ecmascript) <export Anthropic as default>");
 ;
-;
-const systemPrompt = `You are helping a construction field technician write a clear change order description. The user will provide a brief note or bullet points from the field. Your job is to turn it into a professional, factual change order description suitable for client and internal review.
-
-Rules:
-- Use full sentences and clear language.
-- Do not invent details, quantities, or scope that are not implied by the input.
-- Keep the same meaning and facts; only improve clarity and structure.
-- Output only the enhanced description text, no preamble or labels.`;
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 async function POST(request) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
@@ -80,9 +71,6 @@ async function POST(request) {
         });
     }
     const description = typeof body.description === "string" ? body.description.trim() : "";
-    const subject = typeof body.subject === "string" ? body.subject.trim() : "";
-    const category = typeof body.category === "string" ? body.category.trim() : "";
-    const jobName = typeof body.jobName === "string" ? body.jobName.trim() : "";
     if (!description) {
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             error: "Description is required."
@@ -90,41 +78,72 @@ async function POST(request) {
             status: 400
         });
     }
-    const contextParts = [];
-    if (subject) contextParts.push(`Subject: ${subject}`);
-    if (category) contextParts.push(`Category: ${category}`);
-    if (jobName) contextParts.push(`Job: ${jobName}`);
-    const contextBlock = contextParts.length > 0 ? `\nContext:\n${contextParts.join("\n")}\n` : "";
-    const userMessage = `${contextBlock}Brief description from the field:\n\n${description}`;
-    const client = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$anthropic$2d$ai$2b$sdk$40$0$2e$75$2e$0_zod$40$4$2e$3$2e$6$2f$node_modules$2f40$anthropic$2d$ai$2f$sdk$2f$client$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__$3c$export__Anthropic__as__default$3e$__["default"]({
-        apiKey
-    });
+    const userPrompt = `Transform this field note into a professional change order description following these guidelines:
+
+REQUIREMENTS:
+- Be concise (2-3 sentences maximum)
+- Lead with the primary change/addition
+- Include specific quantities, locations, and materials when mentioned
+- Use professional construction terminology
+- State reason for change if provided (customer request, code requirement, field condition, etc.)
+- Remove filler words, casual language, and abbreviations
+- Maintain factual accuracy - don't add information not in the original
+
+TONE: Professional but clear, suitable for contractor-client communication
+
+INPUT: ${description}
+
+OUTPUT: Only the enhanced description, no preamble or explanation.`;
     try {
-        const message = await client.messages.create({
-            model: "claude-sonnet-4-5-20250929",
-            max_tokens: 500,
-            system: systemPrompt,
-            messages: [
-                {
-                    role: "user",
-                    content: userMessage
-                }
-            ]
+        const res = await fetch(ANTHROPIC_API_URL, {
+            method: "POST",
+            headers: {
+                "x-api-key": apiKey,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 500,
+                system: "You are a professional construction documentation assistant specializing in change order descriptions. Your goal is to transform rough field notes into clear, professional descriptions that satisfy both internal documentation needs and client-facing communication standards.",
+                messages: [
+                    {
+                        role: "user",
+                        content: userPrompt
+                    }
+                ]
+            })
         });
-        const textBlock = message.content.find((b)=>b.type === "text");
-        const content = textBlock?.text?.trim();
-        if (!content) {
+        const data = await res.json().catch(()=>({}));
+        if (!res.ok) {
+            const message = data.error?.message || res.statusText || "Anthropic API error";
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                error: message
+            }, {
+                status: 500
+            });
+        }
+        const content = data.content;
+        if (!Array.isArray(content) || content.length === 0) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 error: "No enhanced text returned."
             }, {
-                status: 502
+                status: 500
+            });
+        }
+        const firstBlock = content[0];
+        const text = firstBlock?.text;
+        if (typeof text !== "string") {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                error: "Invalid response format."
+            }, {
+                status: 500
             });
         }
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
-            enhanced: content
+            enhanced: text.trim()
         });
     } catch (err) {
-        console.error("[enhance-description]", err);
         const message = err instanceof Error ? err.message : "Enhancement failed.";
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
             error: message

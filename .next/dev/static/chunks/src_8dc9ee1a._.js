@@ -122,18 +122,8 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-const CO_CATEGORIES = [
-    "Owner Change",
-    "Field Condition",
-    "Design Error",
-    "Code Requirement",
-    "Other"
-];
 const fieldFormSchema = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$zod$40$4$2e$3$2e$6$2f$node_modules$2f$zod$2f$v4$2f$classic$2f$external$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__$2a$__as__z$3e$__["z"].object({
     jobId: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$zod$40$4$2e$3$2e$6$2f$node_modules$2f$zod$2f$v4$2f$classic$2f$external$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__$2a$__as__z$3e$__["z"].string().min(1, "Select a job"),
-    category: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$zod$40$4$2e$3$2e$6$2f$node_modules$2f$zod$2f$v4$2f$classic$2f$external$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__$2a$__as__z$3e$__["z"].string().min(1, "Select a category").refine((val)=>CO_CATEGORIES.includes(val), {
-        message: "Select a category"
-    }),
     subject: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$zod$40$4$2e$3$2e$6$2f$node_modules$2f$zod$2f$v4$2f$classic$2f$external$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__$2a$__as__z$3e$__["z"].string().min(3, "Subject must be at least 3 characters"),
     description: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$zod$40$4$2e$3$2e$6$2f$node_modules$2f$zod$2f$v4$2f$classic$2f$external$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__$2a$__as__z$3e$__["z"].string().min(10, "Description must be at least 10 characters"),
     laborHours: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$zod$40$4$2e$3$2e$6$2f$node_modules$2f$zod$2f$v4$2f$classic$2f$external$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__$2a$__as__z$3e$__["z"].union([
@@ -145,29 +135,62 @@ const fieldFormSchema = __TURBOPACK__imported__module__$5b$project$5d2f$node_mod
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$zod$40$4$2e$3$2e$6$2f$node_modules$2f$zod$2f$v4$2f$classic$2f$external$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__$2a$__as__z$3e$__["z"].nan()
     ]).transform((n)=>Number.isNaN(n) ? 0 : n).pipe(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$zod$40$4$2e$3$2e$6$2f$node_modules$2f$zod$2f$v4$2f$classic$2f$external$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__$2a$__as__z$3e$__["z"].number().min(0))
 });
-const DEFAULT_LABOR_BURDEN = 120;
-const DEFAULT_LABOR_BILLING_RATE = 250;
-const DEFAULT_MATERIAL_MARKUP = 30;
-const DEFAULT_SUB_MARKUP = 15;
+const LABOR_BURDEN = 120;
+const LABOR_BILLING_RATE = 250;
+const MATERIAL_MARKUP_PCT = 30; // materialMarkedUp = materialCost * (1 + 30/100) = materialCost * 1.30
 function FieldChangeOrderForm({ onSuccess, onCancel }) {
     _s();
     const [jobs, setJobs] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
     const [jobsLoading, setJobsLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
     const [submitError, setSubmitError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [submitting, setSubmitting] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
-    const [enhanceLoading, setEnhanceLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
-    const [enhanceError, setEnhanceError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
-    const { register, handleSubmit, watch, setValue, formState: { errors } } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$react$2d$hook$2d$form$40$7$2e$71$2e$1_react$40$19$2e$2$2e$3$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useForm"])({
+    const [enhancing, setEnhancing] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const { register, handleSubmit, getValues, setValue, formState: { errors } } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$react$2d$hook$2d$form$40$7$2e$71$2e$1_react$40$19$2e$2$2e$3$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useForm"])({
         resolver: (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f40$hookform$2b$resolvers$40$5$2e$2$2e$2_r_c71c95126efc210b1ac510b1d96c72c6$2f$node_modules$2f40$hookform$2f$resolvers$2f$zod$2f$dist$2f$zod$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["zodResolver"])(fieldFormSchema),
         defaultValues: {
             jobId: "",
-            category: "",
             subject: "",
             description: "",
             laborHours: 0,
             materialCost: 0
         }
     });
+    async function handleEnhanceDescription() {
+        const description = getValues("description");
+        const text = typeof description === "string" ? description.trim() : "";
+        if (!text) {
+            alert("Enter some description text first, then click Enhance.");
+            return;
+        }
+        setEnhancing(true);
+        try {
+            const jobId = getValues("jobId");
+            const jobName = jobId ? jobs.find((j)=>j.id === jobId)?.jobName : undefined;
+            const res = await fetch("/api/enhance-description", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    description: text,
+                    subject: getValues("subject") || undefined,
+                    jobName: jobName || undefined
+                })
+            });
+            const data = await res.json().catch(()=>({}));
+            if (!res.ok) {
+                alert(data.error || "Enhancement failed.");
+                return;
+            }
+            if (typeof data.enhanced === "string") {
+                setValue("description", data.enhanced);
+            }
+        } catch (err) {
+            alert(err instanceof Error ? err.message : "Enhancement failed.");
+        } finally{
+            setEnhancing(false);
+        }
+    }
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "FieldChangeOrderForm.useEffect": ()=>{
             let cancelled = false;
@@ -188,7 +211,8 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                         }
                     }["FieldChangeOrderForm.useEffect.loadJobs.list"]);
                     setJobs(list);
-                } catch  {
+                } catch (err) {
+                    console.error("Failed to load jobs:", err);
                     if (!cancelled) setJobs([]);
                 } finally{
                     if (!cancelled) setJobsLoading(false);
@@ -202,46 +226,6 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
             })["FieldChangeOrderForm.useEffect"];
         }
     }["FieldChangeOrderForm.useEffect"], []);
-    const description = watch("description");
-    const subject = watch("subject");
-    const category = watch("category");
-    const jobId = watch("jobId");
-    async function handleEnhanceDescription() {
-        const desc = typeof description === "string" ? description.trim() : "";
-        setEnhanceError(null);
-        if (!desc) {
-            setEnhanceError("Enter a brief description first, then click Enhance.");
-            return;
-        }
-        setEnhanceLoading(true);
-        try {
-            const jobName = jobId ? jobs.find((j)=>j.id === jobId)?.jobName ?? "" : "";
-            const res = await fetch("/api/enhance-description", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    description: desc,
-                    subject: subject || undefined,
-                    category: category || undefined,
-                    jobName: jobName || undefined
-                })
-            });
-            const data = await res.json().catch(()=>({}));
-            if (!res.ok) {
-                setEnhanceError(data.error || "Enhancement failed.");
-                return;
-            }
-            if (typeof data.enhanced === "string") {
-                setValue("description", data.enhanced);
-            }
-        } catch  {
-            setEnhanceError("Enhancement failed. Try again.");
-        } finally{
-            setEnhanceLoading(false);
-        }
-    }
     async function onSubmit(data) {
         const user = __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$firebase$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["auth"].currentUser;
         if (!user) {
@@ -253,13 +237,13 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
             setSubmitError("Selected job not found.");
             return;
         }
-        const laborCost = data.laborHours * DEFAULT_LABOR_BURDEN;
-        const laborBilling = data.laborHours * DEFAULT_LABOR_BILLING_RATE;
+        const laborCost = data.laborHours * LABOR_BURDEN;
+        const laborBilling = data.laborHours * LABOR_BILLING_RATE;
         const laborMarkedUp = laborBilling;
-        const materialMarkedUp = data.materialCost * (1 + DEFAULT_MATERIAL_MARKUP / 100);
+        const materialMarkedUp = data.materialCost * (1 + MATERIAL_MARKUP_PCT / 100);
         const subMarkedUp = 0;
         const amountRequested = laborCost + data.materialCost;
-        const amountApproved = laborMarkedUp + materialMarkedUp + subMarkedUp;
+        const amountApproved = laborMarkedUp + materialMarkedUp;
         setSubmitError(null);
         setSubmitting(true);
         try {
@@ -269,19 +253,19 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                 jobNumber: selectedJob.jobNumber,
                 jobName: selectedJob.jobName,
                 subject: data.subject.trim(),
-                description: data.description,
-                category: data.category,
+                description: data.description.trim(),
+                category: "Field Condition",
                 laborHours: data.laborHours,
-                laborBurden: DEFAULT_LABOR_BURDEN,
-                laborBillingRate: DEFAULT_LABOR_BILLING_RATE,
-                laborCost,
-                laborBilling: laborBilling,
+                laborBurden: LABOR_BURDEN,
+                laborBillingRate: LABOR_BILLING_RATE,
                 materialCost: data.materialCost,
                 equipmentCost: 0,
                 subcontractorCost: 0,
                 otherCost: 0,
-                materialMarkup: DEFAULT_MATERIAL_MARKUP,
-                subMarkup: DEFAULT_SUB_MARKUP,
+                materialMarkup: MATERIAL_MARKUP_PCT,
+                subMarkup: 15,
+                laborCost,
+                laborBilling,
                 laborMarkedUp,
                 materialMarkedUp,
                 subMarkedUp,
@@ -303,18 +287,10 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
     }
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
         onSubmit: handleSubmit(onSubmit),
-        className: "flex flex-col gap-5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6",
+        className: "flex flex-col gap-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6",
         children: [
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                className: "sr-only",
-                children: "Field change order"
-            }, void 0, false, {
-                fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                lineNumber: 241,
-                columnNumber: 7
-            }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "space-y-4",
+                className: "space-y-5",
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         children: [
@@ -324,7 +300,7 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                 children: "Job"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 245,
+                                lineNumber: 219,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -338,25 +314,25 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                         children: jobsLoading ? "Loading jobs…" : "Select a job"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                        lineNumber: 254,
+                                        lineNumber: 228,
                                         columnNumber: 13
                                     }, this),
                                     jobs.map((job)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
                                             value: job.id,
                                             children: [
                                                 job.jobNumber,
-                                                " - ",
+                                                " — ",
                                                 job.jobName
                                             ]
                                         }, job.id, true, {
                                             fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                            lineNumber: 258,
+                                            lineNumber: 232,
                                             columnNumber: 15
                                         }, this))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 248,
+                                lineNumber: 222,
                                 columnNumber: 11
                             }, this),
                             errors.jobId && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -364,66 +340,13 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                 children: errors.jobId.message
                             }, void 0, false, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 264,
+                                lineNumber: 238,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                        lineNumber: 244,
-                        columnNumber: 9
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                htmlFor: "field-co-category",
-                                className: "block text-sm font-medium text-gray-700",
-                                children: "Category"
-                            }, void 0, false, {
-                                fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 269,
-                                columnNumber: 11
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
-                                id: "field-co-category",
-                                ...register("category"),
-                                className: "mt-1.5 block w-full min-h-[48px] rounded-lg border border-gray-300 px-4 py-3 text-base text-gray-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-0 invalid:text-gray-400",
-                                children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
-                                        value: "",
-                                        className: "text-gray-400",
-                                        children: "Select a Category"
-                                    }, void 0, false, {
-                                        fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                        lineNumber: 277,
-                                        columnNumber: 13
-                                    }, this),
-                                    CO_CATEGORIES.map((cat)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
-                                            value: cat,
-                                            children: cat
-                                        }, cat, false, {
-                                            fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                            lineNumber: 281,
-                                            columnNumber: 15
-                                        }, this))
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 272,
-                                columnNumber: 11
-                            }, this),
-                            errors.category && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                className: "mt-1 text-sm text-red-600",
-                                children: errors.category.message
-                            }, void 0, false, {
-                                fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 287,
-                                columnNumber: 13
-                            }, this)
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                        lineNumber: 268,
+                        lineNumber: 218,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -434,7 +357,7 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                 children: "Subject"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 292,
+                                lineNumber: 243,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -445,7 +368,7 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                 placeholder: "Short title for this change"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 295,
+                                lineNumber: 246,
                                 columnNumber: 11
                             }, this),
                             errors.subject && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -453,19 +376,19 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                 children: errors.subject.message
                             }, void 0, false, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 303,
+                                lineNumber: 254,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                        lineNumber: 291,
+                        lineNumber: 242,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between",
+                                className: "flex flex-wrap items-center gap-2",
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                         htmlFor: "field-co-description",
@@ -473,80 +396,63 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                         children: "Description"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                        lineNumber: 309,
+                                        lineNumber: 260,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                         type: "button",
                                         onClick: handleEnhanceDescription,
-                                        disabled: enhanceLoading || submitting,
-                                        className: "order-2 w-fit min-h-[36px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-0 sm:order-none",
-                                        children: enhanceLoading ? "Expanding…" : "Enhance with AI"
+                                        disabled: enhancing || submitting,
+                                        className: "text-sm text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-60 disabled:cursor-not-allowed disabled:no-underline",
+                                        children: enhancing ? "Enhancing…" : "✨ Enhance with AI"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                        lineNumber: 312,
+                                        lineNumber: 263,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 308,
+                                lineNumber: 259,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
                                 id: "field-co-description",
                                 ...register("description"),
                                 rows: 4,
-                                disabled: enhanceLoading,
+                                disabled: enhancing,
                                 className: "mt-1.5 block w-full min-h-[120px] resize-y rounded-lg border border-gray-300 px-4 py-3 text-base text-gray-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-0 disabled:bg-gray-50 disabled:text-gray-600",
                                 placeholder: "What changed? (min 10 characters)"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 321,
+                                lineNumber: 272,
                                 columnNumber: 11
-                            }, this),
-                            enhanceError && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                className: "mt-1 text-sm text-amber-700",
-                                children: enhanceError
-                            }, void 0, false, {
-                                fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 330,
-                                columnNumber: 13
                             }, this),
                             errors.description && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                 className: "mt-1 text-sm text-red-600",
                                 children: errors.description.message
                             }, void 0, false, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 333,
+                                lineNumber: 281,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                        lineNumber: 307,
-                        columnNumber: 9
-                    }, this)
-                ]
-            }, void 0, true, {
-                fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                lineNumber: 243,
-                columnNumber: 7
-            }, this),
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "rounded-xl bg-slate-50 p-4",
-                children: [
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
-                        className: "border-b border-slate-200 pb-2 text-sm font-semibold uppercase tracking-wide text-gray-700",
-                        children: "Labor & material"
-                    }, void 0, false, {
-                        fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                        lineNumber: 341,
+                        lineNumber: 258,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "mt-4 flex flex-col gap-4",
+                        className: "rounded-xl bg-slate-50 p-4 space-y-4",
                         children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
+                                className: "border-b border-slate-200 pb-2 text-sm font-semibold uppercase tracking-wide text-gray-700",
+                                children: "Labor & material"
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
+                                lineNumber: 288,
+                                columnNumber: 11
+                            }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -555,7 +461,7 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                         children: "Labor hours"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                        lineNumber: 346,
+                                        lineNumber: 292,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -570,13 +476,13 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                         className: "mt-1.5 block w-full min-h-[48px] rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 shadow-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-0"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                        lineNumber: 349,
+                                        lineNumber: 295,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 345,
+                                lineNumber: 291,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -587,7 +493,7 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                         children: "Material cost estimate"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                        lineNumber: 360,
+                                        lineNumber: 306,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -598,7 +504,7 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                                 children: "$"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                                lineNumber: 364,
+                                                lineNumber: 310,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -613,31 +519,31 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                                                 className: "min-w-0 flex-1 rounded-r-lg border-0 bg-transparent py-3 pr-4 pl-2 text-base text-gray-900 focus:ring-0"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                                lineNumber: 367,
+                                                lineNumber: 313,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                        lineNumber: 363,
+                                        lineNumber: 309,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                                lineNumber: 359,
+                                lineNumber: 305,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                        lineNumber: 344,
+                        lineNumber: 287,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                lineNumber: 340,
+                lineNumber: 217,
                 columnNumber: 7
             }, this),
             submitError && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -645,7 +551,7 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                 children: submitError
             }, void 0, false, {
                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                lineNumber: 382,
+                lineNumber: 328,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -658,7 +564,7 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                         children: submitting ? "Saving…" : "Create change order"
                     }, void 0, false, {
                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                        lineNumber: 388,
+                        lineNumber: 334,
                         columnNumber: 9
                     }, this),
                     onCancel && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -669,23 +575,23 @@ function FieldChangeOrderForm({ onSuccess, onCancel }) {
                         children: "Cancel"
                     }, void 0, false, {
                         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                        lineNumber: 396,
+                        lineNumber: 342,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-                lineNumber: 387,
+                lineNumber: 333,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/FieldChangeOrderForm.tsx",
-        lineNumber: 237,
+        lineNumber: 213,
         columnNumber: 5
     }, this);
 }
-_s(FieldChangeOrderForm, "2Snp4u6QMyvXo9Q26wsdJI38lDA=", false, function() {
+_s(FieldChangeOrderForm, "JQg2/Te/W2c/ZNPhoTL4ToDFV2s=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$react$2d$hook$2d$form$40$7$2e$71$2e$1_react$40$19$2e$2$2e$3$2f$node_modules$2f$react$2d$hook$2d$form$2f$dist$2f$index$2e$esm$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useForm"]
     ];
@@ -716,12 +622,12 @@ function FieldNewChangeOrderPage() {
     _s();
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "min-h-screen bg-gray-100 pb-8",
+        className: "min-h-screen bg-gray-50",
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-            className: "mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 sm:py-6",
+            className: "mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 sm:py-8 lg:px-8",
             children: [
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
-                    className: "text-lg font-semibold text-gray-900 sm:text-xl",
+                    className: "text-lg font-bold text-gray-900 sm:text-2xl",
                     children: "New Change Order - Field"
                 }, void 0, false, {
                     fileName: "[project]/src/app/change-orders/field/new/page.tsx",
@@ -729,9 +635,9 @@ function FieldNewChangeOrderPage() {
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                    className: "mt-3 sm:mt-4",
+                    className: "mt-4 sm:mt-6",
                     children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$1$2e$6_$40$babel$2b$core$40$7$2e$2_9d8d1bf7a8807769963b5151bd760c41$2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$FieldChangeOrderForm$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["FieldChangeOrderForm"], {
-                        onSuccess: ()=>router.push("/change-orders"),
+                        onSuccess: ()=>router.push("/dashboard"),
                         onCancel: ()=>router.push("/dashboard")
                     }, void 0, false, {
                         fileName: "[project]/src/app/change-orders/field/new/page.tsx",

@@ -91,12 +91,14 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
   const [jobsLoading, setJobsLoading] = useState(true);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<ChangeOrderFormValues>({
     resolver: zodResolver(changeOrderFormSchema),
@@ -142,6 +144,40 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
       setValue("materialMarkup", suggestMaterialMarkup(cost));
     }
   }, [materialCost, setValue]);
+
+  async function handleEnhanceDescription() {
+    const description = getValues("description");
+    const text = typeof description === "string" ? description.trim() : "";
+    if (!text) {
+      alert("Enter some description text first, then click Enhance.");
+      return;
+    }
+    setEnhancing(true);
+    try {
+      const res = await fetch("/api/enhance-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: text,
+          subject: getValues("subject") || undefined,
+          category: getValues("category") || undefined,
+          jobName: jobs.find((j) => j.id === getValues("jobId"))?.jobName,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert((data.error as string) || "Enhancement failed.");
+        return;
+      }
+      if (typeof data.enhanced === "string") {
+        setValue("description", data.enhanced);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Enhancement failed.");
+    } finally {
+      setEnhancing(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -370,13 +406,24 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
             )}
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Description
-            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Description
+              </label>
+              <button
+                type="button"
+                onClick={handleEnhanceDescription}
+                disabled={enhancing || submitting}
+                className="text-sm text-blue-600 hover:text-blue-700 hover:underline disabled:opacity-60 disabled:cursor-not-allowed disabled:no-underline"
+              >
+                {enhancing ? "Enhancing…" : "✨ Enhance with AI"}
+              </button>
+            </div>
             <textarea
               {...register("description")}
               rows={3}
-              className="mt-1.5 block w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              disabled={enhancing}
+              className="mt-1.5 block w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-600"
               placeholder="Describe the scope of the change order (min 10 characters)"
             />
             {errors.description && (
