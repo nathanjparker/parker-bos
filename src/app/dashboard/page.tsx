@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import {
@@ -19,6 +20,7 @@ import { db, getFirebaseAuth } from "@/lib/firebase";
 type Card = {
   title: string;
   description: string;
+  href: string;
 };
 
 type TestNote = {
@@ -29,10 +31,10 @@ type TestNote = {
 };
 
 const cards: Card[] = [
-  { title: "Jobs", description: "Track jobs, contacts, and status at a glance." },
-  { title: "Change Orders", description: "Draft, approve, and log change orders." },
-  { title: "Purchase Orders", description: "Create POs and tie them back to jobs." },
-  { title: "Files", description: "Upload job files to Firebase Storage." },
+  { title: "Jobs", description: "Track jobs, contacts, and status at a glance.", href: "/jobs" },
+  { title: "Change Orders", description: "Draft, approve, and log change orders.", href: "/change-orders" },
+  { title: "Purchase Orders", description: "Create POs and tie them back to jobs.", href: "/pos" },
+  { title: "Files", description: "Upload job files to Firebase Storage.", href: "/files" },
 ];
 
 export default function DashboardPage() {
@@ -224,12 +226,12 @@ export default function DashboardPage() {
             </button>
           </div>
         </header>
-
-        <section className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <section className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((c) => (
-            <div
+            <Link
               key={c.title}
-              className="rounded-2xl border border-gray-100 bg-white shadow-sm px-5 py-5"
+              href={c.href}
+              className="rounded-2xl border border-gray-100 bg-white shadow-sm px-5 py-5 hover:border-blue-200 hover:shadow-md transition-all"
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -238,15 +240,16 @@ export default function DashboardPage() {
                   </h2>
                   <p className="mt-2 text-sm text-gray-600">{c.description}</p>
                 </div>
-                <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600">
-                  Coming soon
-                </span>
+                {c.title !== "Change Orders" && (
+                  <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                    Coming soon
+                  </span>
+                )}
               </div>
               <div className="mt-5 h-24 rounded-xl border border-dashed border-gray-200 bg-gray-50" />
-            </div>
+            </Link>
           ))}
         </section>
-
         <section className="mt-10 max-w-3xl">
           <div className="rounded-2xl border border-gray-100 bg-white shadow-sm px-5 py-5">
             <div className="flex items-center justify-between gap-4">

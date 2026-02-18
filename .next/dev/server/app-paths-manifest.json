@@ -1,4 +1,9 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/enhance-description/route": "app/api/enhance-description/route.js",
+  "/change-orders/field/new/page": "app/change-orders/field/new/page.js",
+  "/change-orders/new/page": "app/change-orders/new/page.js",
+  "/change-orders/page": "app/change-orders/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/login/page": "app/login/page.js",
   "/page": "app/page.js"
