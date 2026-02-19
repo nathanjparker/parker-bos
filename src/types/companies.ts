@@ -11,10 +11,10 @@ export const COMPANY_TYPES: CompanyType[] = [
 ];
 
 export const COMPANY_TYPE_LABEL: Record<CompanyType, string> = {
-  GC: "General Contractor",
-  Sub: "Subcontractor",
-  Vendor: "Vendor / Supplier",
-  Owner: "Owner / Developer",
+  GC: "GC",
+  Sub: "Sub",
+  Vendor: "Vendor",
+  Owner: "Business",
   Other: "Other",
 };
 
@@ -37,6 +37,7 @@ export interface Company {
   state?: string;
   zip?: string;
   website?: string;
+  tags?: string[];
   createdAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
   createdBy?: string;

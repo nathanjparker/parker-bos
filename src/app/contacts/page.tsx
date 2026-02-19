@@ -45,7 +45,11 @@ export default function ContactsPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Contacts</h1>
-            <p className="mt-1 text-sm text-gray-600">{contacts.length} total</p>
+            <p className="mt-1 text-sm text-gray-600">
+              {search.trim() && filtered.length !== contacts.length
+                ? `${filtered.length} of ${contacts.length}`
+                : `${contacts.length} total`}
+            </p>
           </div>
           <Link
             href="/contacts/new"
@@ -67,7 +71,7 @@ export default function ContactsPage() {
         </div>
 
         {/* List */}
-        <div className="mt-6 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+        <div className="mt-6 rounded-xl border border-gray-100 bg-white shadow-sm">
           {loading ? (
             <div className="px-6 py-12 text-center text-sm text-gray-500">Loading…</div>
           ) : filtered.length === 0 ? (
@@ -85,66 +89,67 @@ export default function ContactsPage() {
               )}
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  {["Name", "Company", "Title", "Phone", ""].map((h) => (
-                    <th
-                      key={h}
-                      className="bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filtered.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50/50">
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <Link
-                        href={`/contacts/${c.id}`}
-                        className="text-sm font-medium text-blue-600 hover:underline"
-                      >
-                        {contactDisplayName(c)}
-                      </Link>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                      {c.companyId ? (
-                        <Link
-                          href={`/companies/${c.companyId}`}
-                          className="hover:text-blue-600 hover:underline"
-                        >
-                          {c.companyName || "—"}
-                        </Link>
-                      ) : (
-                        c.companyName || "—"
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                      {c.title || "—"}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                      {c.phone ? (
-                        <a href={`tel:${c.phone}`} className="hover:text-blue-600">
-                          {c.phone}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <Link
-                        href={`/contacts/${c.id}/edit`}
-                        className="text-xs font-semibold text-gray-400 hover:text-gray-700"
-                      >
-                        Edit
-                      </Link>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 min-w-[160px]">Name</th>
+                    <th className="bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 min-w-[180px]">Company</th>
+                    <th className="bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 min-w-[160px]">Title</th>
+                    <th className="bg-gray-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600 min-w-[130px]">Phone</th>
+                    <th className="bg-gray-50 px-4 py-3 w-16"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filtered.map((c) => (
+                    <tr key={c.id} className="hover:bg-gray-50/50">
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <Link
+                          href={`/contacts/${c.id}`}
+                          className="text-sm font-medium text-blue-600 hover:underline"
+                        >
+                          {contactDisplayName(c)}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500 max-w-[220px]">
+                        <span className="block truncate">
+                          {c.companyId ? (
+                            <Link
+                              href={`/companies/${c.companyId}`}
+                              className="hover:text-blue-600 hover:underline"
+                            >
+                              {c.companyName || "—"}
+                            </Link>
+                          ) : (
+                            c.companyName || "—"
+                          )}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500 max-w-[200px]">
+                        <span className="block truncate">{c.title || "—"}</span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
+                        {c.phone ? (
+                          <a href={`tel:${c.phone}`} className="hover:text-blue-600">
+                            {c.phone}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right">
+                        <Link
+                          href={`/contacts/${c.id}/edit`}
+                          className="text-xs font-semibold text-gray-400 hover:text-gray-700"
+                        >
+                          Edit
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

@@ -6,17 +6,20 @@ import { useParams } from "next/navigation";
 import {
   addDoc,
   collection,
+  deleteField,
   doc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import { db, getFirebaseAuth } from "@/lib/firebase";
 import {
   COMPANY_TYPE_BADGE,
+  COMPANY_TYPE_LABEL,
   contactDisplayName,
   type Company,
   type Contact,
@@ -50,6 +53,11 @@ export default function CompanyDetailPage() {
   const [contactValues, setContactValues] = useState<ContactFormValues>(CONTACT_EMPTY);
   const [savingContact, setSavingContact] = useState(false);
   const [contactError, setContactError] = useState<string | null>(null);
+
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<ContactFormValues>(CONTACT_EMPTY);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const auth = useMemo(() => {
     try {
@@ -121,6 +129,44 @@ export default function CompanyDetailPage() {
     }
   }
 
+  function startEditContact(c: Contact) {
+    setEditingContactId(c.id);
+    setEditValues({
+      firstName: c.firstName ?? "",
+      lastName: c.lastName ?? "",
+      title: c.title ?? "",
+      phone: c.phone ?? "",
+      email: c.email ?? "",
+    });
+    setEditError(null);
+  }
+
+  async function handleSaveEdit(e: React.FormEvent, contactId: string) {
+    e.preventDefault();
+    if (!editValues.firstName.trim() && !editValues.lastName.trim()) {
+      setEditError("First or last name is required.");
+      return;
+    }
+    setSavingEdit(true);
+    setEditError(null);
+    try {
+      await updateDoc(doc(db, "contacts", contactId), {
+        firstName: editValues.firstName.trim(),
+        lastName: editValues.lastName.trim(),
+        title: editValues.title.trim() || deleteField(),
+        phone: editValues.phone.trim() || deleteField(),
+        email: editValues.email.trim() || deleteField(),
+        updatedAt: serverTimestamp(),
+      });
+      setEditingContactId(null);
+    } catch (err) {
+      console.error("Edit contact error:", err);
+      setEditError("Failed to save. Please try again.");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   if (loading) {
     return (
       <AppShell>
@@ -164,7 +210,7 @@ export default function CompanyDetailPage() {
                   COMPANY_TYPE_BADGE[company.type]
                 }`}
               >
-                {company.type}
+                {COMPANY_TYPE_LABEL[company.type]}
               </span>
             </div>
           </div>
@@ -330,30 +376,117 @@ export default function CompanyDetailPage() {
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {contacts.map((c) => (
-                    <li key={c.id} className="flex items-center gap-4 px-5 py-4">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 uppercase">
-                        {c.firstName?.[0] ?? ""}{c.lastName?.[0] ?? ""}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {contactDisplayName(c)}
-                        </p>
-                        {c.title && (
-                          <p className="text-xs text-gray-500">{c.title}</p>
-                        )}
-                        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                          {c.phone && (
-                            <a href={`tel:${c.phone}`} className="text-xs text-blue-600 hover:underline">
-                              {c.phone}
-                            </a>
-                          )}
-                          {c.email && (
-                            <a href={`mailto:${c.email}`} className="text-xs text-blue-600 hover:underline">
-                              {c.email}
-                            </a>
-                          )}
+                    <li key={c.id}>
+                      {editingContactId === c.id ? (
+                        /* Inline edit form */
+                        <form
+                          onSubmit={(e) => handleSaveEdit(e, c.id)}
+                          className="bg-amber-50/40 px-5 py-4"
+                        >
+                          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Editing {contactDisplayName(c)}
+                          </p>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <input
+                              type="text"
+                              className={inputCls}
+                              placeholder="First name"
+                              value={editValues.firstName}
+                              onChange={(e) => setEditValues((v) => ({ ...v, firstName: e.target.value }))}
+                            />
+                            <input
+                              type="text"
+                              className={inputCls}
+                              placeholder="Last name"
+                              value={editValues.lastName}
+                              onChange={(e) => setEditValues((v) => ({ ...v, lastName: e.target.value }))}
+                            />
+                            <input
+                              type="text"
+                              className={inputCls}
+                              placeholder="Title"
+                              value={editValues.title}
+                              onChange={(e) => setEditValues((v) => ({ ...v, title: e.target.value }))}
+                            />
+                            <input
+                              type="tel"
+                              className={inputCls}
+                              placeholder="Phone"
+                              value={editValues.phone}
+                              onChange={(e) => setEditValues((v) => ({ ...v, phone: e.target.value }))}
+                            />
+                            <div className="sm:col-span-2">
+                              <input
+                                type="email"
+                                className={inputCls}
+                                placeholder="Email"
+                                value={editValues.email}
+                                onChange={(e) => setEditValues((v) => ({ ...v, email: e.target.value }))}
+                              />
+                            </div>
+                          </div>
+                          {editError && <p className="mt-2 text-xs text-red-600">{editError}</p>}
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              type="submit"
+                              disabled={savingEdit}
+                              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                            >
+                              {savingEdit ? "Saving…" : "Save"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingContactId(null)}
+                              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                            >
+                              Cancel
+                            </button>
+                            <Link
+                              href={`/contacts/${c.id}`}
+                              className="ml-auto text-xs text-gray-400 hover:text-blue-600"
+                            >
+                              Full profile →
+                            </Link>
+                          </div>
+                        </form>
+                      ) : (
+                        /* Normal row */
+                        <div className="flex items-center gap-4 px-5 py-4">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 uppercase">
+                            {c.firstName?.[0] ?? ""}{c.lastName?.[0] ?? ""}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <Link
+                              href={`/contacts/${c.id}`}
+                              className="text-sm font-semibold text-gray-900 hover:text-blue-600"
+                            >
+                              {contactDisplayName(c)}
+                            </Link>
+                            {c.title && (
+                              <p className="text-xs text-gray-500">{c.title}</p>
+                            )}
+                            <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                              {c.phone && (
+                                <a href={`tel:${c.phone}`} className="text-xs text-blue-600 hover:underline">
+                                  {c.phone}
+                                </a>
+                              )}
+                              {c.email && (
+                                <a href={`mailto:${c.email}`} className="text-xs text-blue-600 hover:underline">
+                                  {c.email}
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => startEditContact(c)}
+                            className="shrink-0 text-xs font-semibold text-gray-400 hover:text-gray-700"
+                          >
+                            Edit
+                          </button>
                         </div>
-                      </div>
+                      )}
                     </li>
                   ))}
                 </ul>

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { doc, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import { db } from "@/lib/firebase";
+import { contactDisplayName, type Contact } from "@/types/companies";
 import { type Jurisdiction } from "@/types/jurisdictions";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -21,6 +22,7 @@ export default function JurisdictionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction | null>(null);
   const [loading, setLoading] = useState(true);
+  const [linkedContacts, setLinkedContacts] = useState<Contact[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -31,6 +33,31 @@ export default function JurisdictionDetailPage() {
       setLoading(false);
     });
   }, [id]);
+
+  // Load linked contacts whenever contactIds changes
+  useEffect(() => {
+    const ids = jurisdiction?.contactIds;
+    if (!ids || ids.length === 0) {
+      setLinkedContacts([]);
+      return;
+    }
+    // Firestore `in` supports up to 30 values; jurisdictions rarely have more than a handful
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += 30) chunks.push(ids.slice(i, i + 30));
+    const unsubscribers = chunks.map((chunk) =>
+      onSnapshot(
+        query(collection(db, "contacts"), where("__name__", "in", chunk)),
+        (snap) => {
+          const fetched = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Contact, "id">) }));
+          setLinkedContacts((prev) => {
+            const merged = [...prev.filter((c) => !chunk.includes(c.id)), ...fetched];
+            return ids.map((cid) => merged.find((c) => c.id === cid)).filter(Boolean) as Contact[];
+          });
+        }
+      )
+    );
+    return () => unsubscribers.forEach((u) => u());
+  }, [jurisdiction?.contactIds]);
 
   if (loading) {
     return (
@@ -117,9 +144,24 @@ export default function JurisdictionDetailPage() {
                 }
               />
             )}
-            {jurisdiction.contactNames && (
+            {(linkedContacts.length > 0 || jurisdiction.contactNames) && (
               <div className="sm:col-span-2">
-                <DetailRow label="Contacts" value={jurisdiction.contactNames} />
+                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Contacts</dt>
+                <dd className="mt-1 flex flex-wrap gap-2">
+                  {linkedContacts.length > 0
+                    ? linkedContacts.map((c) => (
+                        <Link
+                          key={c.id}
+                          href={`/contacts/${c.id}`}
+                          className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                        >
+                          {contactDisplayName(c)}
+                          {c.title && <span className="ml-1 text-blue-400">— {c.title}</span>}
+                        </Link>
+                      ))
+                    : <span className="text-sm text-gray-700">{jurisdiction.contactNames}</span>
+                  }
+                </dd>
               </div>
             )}
             {jurisdiction.notes && (

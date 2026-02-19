@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { type Jurisdiction } from "@/types/jurisdictions";
+import ContactMultiPicker from "@/components/ContactMultiPicker";
 
 type FormValues = {
   name: string;
@@ -20,7 +21,6 @@ type FormValues = {
   address: string;
   website: string;
   notes: string;
-  contactNames: string;
 };
 
 const EMPTY: FormValues = {
@@ -31,7 +31,6 @@ const EMPTY: FormValues = {
   address: "",
   website: "",
   notes: "",
-  contactNames: "",
 };
 
 function jurisdictionToForm(j: Jurisdiction): FormValues {
@@ -43,7 +42,6 @@ function jurisdictionToForm(j: Jurisdiction): FormValues {
     address: j.address ?? "",
     website: j.website ?? "",
     notes: j.notes ?? "",
-    contactNames: j.contactNames ?? "",
   };
 }
 
@@ -72,6 +70,9 @@ export default function JurisdictionForm({
   const [values, setValues] = useState<FormValues>(
     jurisdiction ? jurisdictionToForm(jurisdiction) : EMPTY
   );
+  const [contactIds, setContactIds] = useState<string[]>(
+    jurisdiction?.contactIds ?? []
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,7 +98,7 @@ export default function JurisdictionForm({
     if (values.address.trim()) payload.address = values.address.trim();
     if (values.website.trim()) payload.website = values.website.trim();
     if (values.notes.trim()) payload.notes = values.notes.trim();
-    if (values.contactNames.trim()) payload.contactNames = values.contactNames.trim();
+    if (contactIds.length > 0) payload.contactIds = contactIds;
 
     try {
       if (jurisdiction) {
@@ -197,15 +198,7 @@ export default function JurisdictionForm({
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Contacts (comma-separated names)">
-              <input
-                type="text"
-                className={inputCls}
-                placeholder="e.g. Jane Smith, Bob Jones"
-                value={values.contactNames}
-                onChange={(e) => set("contactNames", e.target.value)}
-              />
-            </Field>
+            <ContactMultiPicker value={contactIds} onChange={setContactIds} />
           </div>
           <div className="sm:col-span-2">
             <Field label="Notes">

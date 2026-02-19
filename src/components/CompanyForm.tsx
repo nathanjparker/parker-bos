@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   addDoc,
   collection,
+  deleteField,
   doc,
   serverTimestamp,
   updateDoc,
@@ -79,11 +80,31 @@ export default function CompanyForm({
   const [values, setValues] = useState<FormValues>(
     company ? companyToForm(company) : EMPTY
   );
+  const [tags, setTags] = useState<string[]>(company?.tags ?? []);
+  const [tagInput, setTagInput] = useState("");
+  const tagInputRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function set(field: keyof FormValues, value: string) {
     setValues((v) => ({ ...v, [field]: value }));
+  }
+
+  function addTag(raw: string) {
+    const tag = raw.trim().toLowerCase();
+    if (tag && !tags.includes(tag)) {
+      setTags((t) => [...t, tag]);
+    }
+    setTagInput("");
+  }
+
+  function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+      setTags((t) => t.slice(0, -1));
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -105,14 +126,18 @@ export default function CompanyForm({
       state: values.state.trim() || undefined,
       zip: values.zip.trim() || undefined,
       website: values.website.trim() || undefined,
+      tags: tags.length > 0 ? tags : undefined,
     };
 
     try {
       if (company) {
-        await updateDoc(doc(db, "companies", company.id), {
-          ...payload,
-          updatedAt: serverTimestamp(),
-        });
+        // updateDoc doesn't accept undefined — replace with deleteField() to clear removed values
+        const updatePayload = Object.fromEntries(
+          Object.entries({ ...payload, updatedAt: serverTimestamp() }).map(
+            ([k, v]) => [k, v === undefined ? deleteField() : v]
+          )
+        );
+        await updateDoc(doc(db, "companies", company.id), updatePayload);
         router.push(`/companies/${company.id}`);
       } else {
         const ref = await addDoc(collection(db, "companies"), {
@@ -168,9 +193,9 @@ export default function CompanyForm({
                     : t === "Sub"
                     ? "Subcontractor"
                     : t === "Vendor"
-                    ? "Vendor / Supplier"
+                    ? "Vendor"
                     : t === "Owner"
-                    ? "Owner / Developer"
+                    ? "Business"
                     : "Other"}
                 </option>
               ))}
@@ -250,6 +275,42 @@ export default function CompanyForm({
               onChange={(e) => set("zip", e.target.value)}
             />
           </Field>
+        </div>
+      </div>
+
+      {/* Tags */}
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Tags</h2>
+        <p className="mb-3 text-xs text-gray-400">Add specialty labels like "backflow tester", "hvac", "fire sprinkler". Press Enter or comma to add.</p>
+        <div
+          className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 cursor-text"
+          onClick={() => tagInputRef.current?.focus()}
+        >
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-xs font-medium text-violet-800"
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setTags((t) => t.filter((x) => x !== tag)); }}
+                className="ml-0.5 text-violet-400 hover:text-violet-700"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <input
+            ref={tagInputRef}
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleTagKeyDown}
+            onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
+            placeholder={tags.length === 0 ? "e.g. backflow tester, hvac…" : ""}
+            className="min-w-[140px] flex-1 bg-transparent text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none"
+          />
         </div>
       </div>
 
