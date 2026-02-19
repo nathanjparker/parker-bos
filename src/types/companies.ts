@@ -46,8 +46,8 @@ export interface Contact {
   id: string;
   firstName: string;
   lastName: string;
-  companyId: string;
-  companyName: string;
+  companyId?: string;   // optional — some contacts aren't linked to a company
+  companyName?: string;
   title?: string;
   phone?: string;
   email?: string;

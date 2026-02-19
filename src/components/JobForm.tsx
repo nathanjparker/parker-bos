@@ -15,6 +15,7 @@ import {
 import { db } from "@/lib/firebase";
 import { PROJECT_PHASES, type Job, type ProjectPhase } from "@/types/jobs";
 import { type Company } from "@/types/companies";
+import { type Jurisdiction } from "@/types/jurisdictions";
 import ContactPicker from "@/components/ContactPicker";
 
 type TeamField = {
@@ -27,6 +28,8 @@ type FormValues = {
   projectPhase: ProjectPhase;
   gcId: string;
   gcName: string;
+  jurisdictionId: string;
+  jurisdictionName: string;
   siteAddress: string;
   siteCity: string;
   siteState: string;
@@ -44,6 +47,8 @@ const EMPTY: FormValues = {
   projectPhase: "Lead",
   gcId: "",
   gcName: "",
+  jurisdictionId: "",
+  jurisdictionName: "",
   siteAddress: "",
   siteCity: "",
   siteState: "WA",
@@ -60,6 +65,8 @@ function jobToForm(job: Job): FormValues {
     projectPhase: job.projectPhase ?? "Lead",
     gcId: job.gcId ?? "",
     gcName: job.gcName ?? "",
+    jurisdictionId: job.jurisdictionId ?? "",
+    jurisdictionName: job.jurisdictionName ?? "",
     siteAddress: job.siteAddress ?? "",
     siteCity: job.siteCity ?? "",
     siteState: job.siteState ?? "WA",
@@ -102,12 +109,22 @@ export default function JobForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [jurisdictions, setJurisdictions] = useState<Jurisdiction[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, "companies"), orderBy("name", "asc"));
     return onSnapshot(q, (snap) => {
       setCompanies(
         snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Company, "id">) }))
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, "jurisdictions"), orderBy("name", "asc"));
+    return onSnapshot(q, (snap) => {
+      setJurisdictions(
+        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Jurisdiction, "id">) }))
       );
     });
   }, []);
@@ -130,6 +147,16 @@ export default function JobForm({
     }));
   }
 
+  function handleJurisdictionChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const jurisdictionId = e.target.value;
+    const jurisdiction = jurisdictions.find((j) => j.id === jurisdictionId);
+    setValues((v) => ({
+      ...v,
+      jurisdictionId,
+      jurisdictionName: jurisdiction?.name ?? "",
+    }));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!values.jobName.trim()) {
@@ -144,6 +171,8 @@ export default function JobForm({
       projectPhase: values.projectPhase,
       gcId: values.gcId || undefined,
       gcName: values.gcName || undefined,
+      jurisdictionId: values.jurisdictionId || undefined,
+      jurisdictionName: values.jurisdictionName || undefined,
       siteAddress: values.siteAddress.trim() || undefined,
       siteCity: values.siteCity.trim() || undefined,
       siteState: values.siteState.trim() || undefined,
@@ -232,7 +261,6 @@ export default function JobForm({
                     {c.name}
                   </option>
                 ))}
-              {/* Show non-GC companies in a separate group */}
               {companies.filter((c) => c.type !== "GC").length > 0 && (
                 <optgroup label="Other Companies">
                   {companies
@@ -244,6 +272,16 @@ export default function JobForm({
                     ))}
                 </optgroup>
               )}
+            </select>
+          </Field>
+          <Field label="Jurisdiction">
+            <select className={inputCls} value={values.jurisdictionId} onChange={handleJurisdictionChange}>
+              <option value="">Select jurisdiction</option>
+              {jurisdictions.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.name}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Original Contract Value">

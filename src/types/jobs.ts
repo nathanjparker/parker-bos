@@ -45,6 +45,8 @@ export interface Job {
   pmName?: string;
   superintendentId?: string;
   superintendentName?: string;
+  jurisdictionId?: string;
+  jurisdictionName?: string;
   originalContractValue?: number;
   currentContractValue?: number;
   bidDueDate?: Timestamp | null;
