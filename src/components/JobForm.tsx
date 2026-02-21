@@ -190,19 +190,27 @@ export default function JobForm({
 
     try {
       if (job) {
-        await updateDoc(doc(db, "Jobs", job.id), {
+        const updateData = {
           ...payload,
           updatedAt: serverTimestamp(),
-        });
+        };
+        const clean = Object.fromEntries(
+          Object.entries(updateData).filter(([, v]) => v !== undefined)
+        ) as Record<string, unknown>;
+        await updateDoc(doc(db, "Jobs", job.id), clean);
         router.push(`/jobs/${job.id}`);
       } else {
-        const ref = await addDoc(collection(db, "Jobs"), {
+        const docData = {
           ...payload,
           currentContractValue: payload.originalContractValue ?? 0,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           createdBy,
-        });
+        };
+        const clean = Object.fromEntries(
+          Object.entries(docData).filter(([, v]) => v !== undefined)
+        ) as Record<string, unknown>;
+        const ref = await addDoc(collection(db, "Jobs"), clean);
         router.push(`/jobs/${ref.id}`);
       }
     } catch (err) {
