@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -11,9 +11,14 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  where,
 } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
+import BudgetImport from "@/components/BudgetImport";
+import FileList from "@/components/FileList";
+import FileUpload from "@/components/FileUpload";
 import { db, getFirebaseAuth } from "@/lib/firebase";
+import { calcBillable, type CostingPhase } from "@/types/costing";
 import {
   ACTIVITY_TAGS,
   PHASE_BADGE_CLASS,
@@ -21,6 +26,13 @@ import {
   type ActivityTag,
   type Job,
 } from "@/types/jobs";
+import {
+  CATEGORIES_BY_PHASE,
+  defaultFilePhaseForJob,
+  JOB_FILE_PHASES,
+  type JobFileCategory,
+  type JobFilePhase,
+} from "@/types/files";
 
 function formatCurrency(n: number | undefined): string {
   if (!n) return "—";
@@ -52,6 +64,10 @@ export default function JobDetailPage() {
   const [noteText, setNoteText] = useState("");
   const [noteTag, setNoteTag] = useState<ActivityTag>("General");
   const [addingNote, setAddingNote] = useState(false);
+  const [activePhase, setActivePhase] = useState<JobFilePhase>("Active");
+  const [activeCategory, setActiveCategory] = useState<JobFileCategory>("Schedule");
+  const [costingPhases, setCostingPhases] = useState<CostingPhase[]>([]);
+  const [showBudgetImport, setShowBudgetImport] = useState(false);
 
   const auth = useMemo(() => {
     try {
@@ -61,8 +77,11 @@ export default function JobDetailPage() {
     }
   }, []);
 
+  const filePhaseInitializedForJobId = useRef<string | null>(null);
+
   useEffect(() => {
     if (!id) return;
+    filePhaseInitializedForJobId.current = null;
     const unsub = onSnapshot(doc(db, "Jobs", id), (snap) => {
       if (snap.exists()) {
         setJob({ id: snap.id, ...(snap.data() as Omit<Job, "id">) });
@@ -70,6 +89,30 @@ export default function JobDetailPage() {
       setLoading(false);
     });
     return () => unsub();
+  }, [id]);
+
+  // Default file phase and category from job phase when job first loads
+  useEffect(() => {
+    if (!job || !id || filePhaseInitializedForJobId.current === id) return;
+    filePhaseInitializedForJobId.current = id;
+    const phase = defaultFilePhaseForJob(job.projectPhase);
+    const categories = CATEGORIES_BY_PHASE[phase];
+    setActivePhase(phase);
+    setActiveCategory(categories[0] ?? "Schedule");
+  }, [id, job]);
+
+  useEffect(() => {
+    if (!id) return;
+    const q = query(
+      collection(db, "costingPhases"),
+      where("jobId", "==", id),
+      orderBy("importedAt", "asc")
+    );
+    return onSnapshot(q, (snap) => {
+      setCostingPhases(
+        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CostingPhase, "id">) }))
+      );
+    });
   }, [id]);
 
   useEffect(() => {
@@ -300,7 +343,199 @@ export default function JobDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Files */}
+        <div className="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-5 py-4">
+            <h2 className="text-sm font-semibold text-gray-900">Files</h2>
+          </div>
+          {/* Phase header: Bidding | Awarded | Active | Close out */}
+          <div className="flex flex-wrap gap-2 border-b border-gray-100 px-5 py-3">
+            {JOB_FILE_PHASES.map((phase) => (
+              <button
+                key={phase}
+                type="button"
+                onClick={() => {
+                  setActivePhase(phase);
+                  const cats = CATEGORIES_BY_PHASE[phase];
+                  const inPhase = cats.includes(activeCategory);
+                  if (!inPhase) setActiveCategory(cats[0] ?? "Schedule");
+                }}
+                className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+                  activePhase === phase
+                    ? "bg-gray-900 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {phase}
+              </button>
+            ))}
+          </div>
+          {/* Category tabs for current phase */}
+          <div className="flex flex-wrap gap-1 border-b border-gray-100 px-5 py-3">
+            {CATEGORIES_BY_PHASE[activePhase].map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  activeCategory === cat
+                    ? "bg-gray-900 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+          {/* File list + upload for active category */}
+          <div className="px-5 py-4">
+            <div className="mb-3">
+              <FileUpload
+                entityType="job"
+                entityId={id}
+                entityName={job.jobName}
+                category={activeCategory}
+                label={`Upload ${activeCategory}`}
+              />
+            </div>
+            <FileList
+              entityType="job"
+              entityId={id}
+              entityName={job.jobName}
+              category={activeCategory}
+            />
+          </div>
+        </div>
+
+        {/* Budget / Costing — Awarded and Active jobs only */}
+        {(job.projectPhase === "Awarded" || job.projectPhase === "Active") && (() => {
+          const contracted = costingPhases.filter((p) => p.subgrouping === "CONTRACTED WORK");
+          const cos = costingPhases.filter((p) => p.subgrouping === "CHANGE ORDER");
+          const totalContract = costingPhases.reduce((s, p) => s + p.contractValue, 0);
+          const totalBillable = costingPhases.reduce((s, p) => s + calcBillable(p.contractValue, p.completedPct), 0);
+
+          return (
+            <div className="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-sm font-semibold text-gray-900">Budget</h2>
+                  {costingPhases.length > 0 && (
+                    <>
+                      <span className="text-xs text-gray-500">
+                        Contract: <span className="font-semibold text-gray-800">
+                          {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(totalContract)}
+                        </span>
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        Billable: <span className="font-semibold text-green-700">
+                          {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(totalBillable)}
+                        </span>
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {costingPhases.length > 0 && (
+                    <Link
+                      href="/project-management"
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      View in Project Management →
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowBudgetImport(true)}
+                    className="rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                  >
+                    {costingPhases.length > 0 ? "Re-import Budget" : "+ Import Budget"}
+                  </button>
+                </div>
+              </div>
+
+              {costingPhases.length === 0 ? (
+                <div className="px-5 py-10 text-center">
+                  <p className="text-sm text-gray-400">No budget imported yet.</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowBudgetImport(true)}
+                    className="mt-3 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    Import Budget
+                  </button>
+                </div>
+              ) : (
+                <div className="px-5 py-4 space-y-4">
+                  {contracted.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Contracted Work</p>
+                      <BudgetPhaseTable phases={contracted} />
+                    </div>
+                  )}
+                  {cos.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Change Orders</p>
+                      <BudgetPhaseTable phases={cos} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
+
+      {showBudgetImport && job && (
+        <BudgetImport
+          jobId={id}
+          jobName={job.jobName}
+          existingPhases={costingPhases}
+          onClose={() => setShowBudgetImport(false)}
+        />
+      )}
     </AppShell>
+  );
+}
+
+function BudgetPhaseTable({ phases }: { phases: CostingPhase[] }) {
+  function fmt(n: number) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  }
+  return (
+    <div className="overflow-x-auto rounded-lg border border-gray-200">
+      <table className="min-w-full divide-y divide-gray-200 text-xs">
+        <thead className="bg-gray-50">
+          <tr>
+            {["Phase", "Est. Mat", "Est. Labor", "Est. Hrs", "Contract", "% Complete", "Hrs Left", "Billable"].map((h) => (
+              <th key={h} className="px-3 py-2 text-left font-semibold uppercase tracking-wide text-gray-500">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100 bg-white">
+          {phases.map((p) => {
+            const hoursLeft = Math.round(p.estHours * (1 - (p.completedPct ?? 0) / 100));
+            const billable = calcBillable(p.contractValue, p.completedPct);
+            const complete = p.completedPct === 100;
+            return (
+              <tr key={p.id} className={complete ? "bg-green-100" : ""}>
+                <td className={`px-3 py-2 font-medium ${complete ? "text-green-800" : "text-gray-900"}`}>
+                  {p.label}
+                </td>
+                <td className={`px-3 py-2 tabular-nums ${complete ? "text-green-700" : "text-gray-600"}`}>{fmt(p.estMaterialCost)}</td>
+                <td className={`px-3 py-2 tabular-nums ${complete ? "text-green-700" : "text-gray-600"}`}>{fmt(p.estLaborCost)}</td>
+                <td className={`px-3 py-2 tabular-nums ${complete ? "text-green-700" : "text-gray-600"}`}>{p.estHours}</td>
+                <td className={`px-3 py-2 font-medium tabular-nums ${complete ? "text-green-800" : "text-gray-900"}`}>{fmt(p.contractValue)}</td>
+                <td className={`px-3 py-2 tabular-nums ${complete ? "text-green-700" : "text-gray-600"}`}>{p.completedPct != null ? `${p.completedPct}%` : "—"}</td>
+                <td className={`px-3 py-2 tabular-nums ${hoursLeft < 0 ? "text-red-600 font-semibold" : complete ? "text-green-700" : "text-gray-600"}`}>
+                  {p.estHours > 0 ? hoursLeft : "—"}
+                </td>
+                <td className={`px-3 py-2 font-medium tabular-nums ${complete ? "text-green-800" : "text-green-700"}`}>{fmt(billable)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

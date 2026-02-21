@@ -11,6 +11,8 @@ import {
 import AppShell from "@/components/AppShell";
 import { db } from "@/lib/firebase";
 
+const FIRESTORE_PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "(not set)";
+
 type StatCard = {
   label: string;
   value: string | number;
@@ -30,7 +32,11 @@ export default function DashboardPage() {
       collection(db, "Jobs"),
       where("projectPhase", "==", "Active")
     );
-    return onSnapshot(q, (snap) => setActiveJobs(snap.size));
+    return onSnapshot(
+      q,
+      (snap) => setActiveJobs(snap.size),
+      (err) => console.error("Dashboard Jobs (Active) error:", err.message)
+    );
   }, []);
 
   // Awarded jobs count
@@ -39,7 +45,11 @@ export default function DashboardPage() {
       collection(db, "Jobs"),
       where("projectPhase", "==", "Awarded")
     );
-    return onSnapshot(q, (snap) => setAwardedJobs(snap.size));
+    return onSnapshot(
+      q,
+      (snap) => setAwardedJobs(snap.size),
+      (err) => console.error("Dashboard Jobs (Awarded) error:", err.message)
+    );
   }, []);
 
   // COs pending review (Submitted or Under Review)
@@ -48,7 +58,11 @@ export default function DashboardPage() {
       collection(db, "changeOrders"),
       where("status", "in", ["Submitted", "Under Review"])
     );
-    return onSnapshot(q, (snap) => setPendingCOs(snap.size));
+    return onSnapshot(
+      q,
+      (snap) => setPendingCOs(snap.size),
+      (err) => console.error("Dashboard changeOrders (pending) error:", err.message)
+    );
   }, []);
 
   // Total approved CO value
@@ -57,13 +71,17 @@ export default function DashboardPage() {
       collection(db, "changeOrders"),
       where("status", "==", "Approved")
     );
-    return onSnapshot(q, (snap) => {
-      const total = snap.docs.reduce(
-        (sum, d) => sum + (Number(d.data().amountApproved) || 0),
-        0
-      );
-      setApprovedCOValue(total);
-    });
+    return onSnapshot(
+      q,
+      (snap) => {
+        const total = snap.docs.reduce(
+          (sum, d) => sum + (Number(d.data().amountApproved) || 0),
+          0
+        );
+        setApprovedCOValue(total);
+      },
+      (err) => console.error("Dashboard changeOrders (approved) error:", err.message)
+    );
   }, []);
 
   const stats: StatCard[] = useMemo(
@@ -123,7 +141,12 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-xs text-gray-400" title="Must match Firebase Console project">
+            Firestore: {FIRESTORE_PROJECT_ID}
+          </p>
+        </div>
 
         {/* Stats */}
         <div className="mt-6 grid gap-4 sm:grid-cols-3">

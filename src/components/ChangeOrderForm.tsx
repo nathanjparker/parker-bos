@@ -92,6 +92,7 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
 
   const {
     register,
@@ -149,9 +150,10 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
     const description = getValues("description");
     const text = typeof description === "string" ? description.trim() : "";
     if (!text) {
-      alert("Enter some description text first, then click Enhance.");
+      setEnhanceError("Enter some description text first, then click Enhance.");
       return;
     }
+    setEnhanceError(null);
     setEnhancing(true);
     try {
       const res = await fetch("/api/enhance-description", {
@@ -166,14 +168,15 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert((data.error as string) || "Enhancement failed.");
+        setEnhanceError((data.error as string) || "Enhancement failed.");
         return;
       }
       if (typeof data.enhanced === "string") {
         setValue("description", data.enhanced);
+        setEnhanceError(null);
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Enhancement failed.");
+      setEnhanceError(err instanceof Error ? err.message : "Enhancement failed.");
     } finally {
       setEnhancing(false);
     }
@@ -305,8 +308,14 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
     setSubmitting(true);
 
     try {
+      // Generate next CO number for this job: CO-01, CO-02, …
+      const existingSnap = await getDocs(
+        query(collection(db, "changeOrders"), where("jobId", "==", data.jobId))
+      );
+      const coNumber = `CO-${String(existingSnap.size + 1).padStart(2, "0")}`;
+
       await addDoc(collection(db, "changeOrders"), {
-        coNumber: "",
+        coNumber,
         jobId: data.jobId,
         jobNumber: selectedJob.jobNumber,
         jobName: selectedJob.jobName,
@@ -434,6 +443,11 @@ export function ChangeOrderForm({ onSuccess, onCancel }: ChangeOrderFormProps) {
             {errors.description && (
               <p className="mt-1 text-xs text-red-600">
                 {errors.description.message}
+              </p>
+            )}
+            {enhanceError && (
+              <p className="mt-1.5 text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1.5">
+                {enhanceError}
               </p>
             )}
           </div>

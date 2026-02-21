@@ -2,10 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  addDoc,
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   updateDoc,
   serverTimestamp,
+  where,
 } from "firebase/firestore";
 import {
   type COStatus,
@@ -177,6 +182,39 @@ export function ChangeOrderReview({ coId, onClose }: ChangeOrderReviewProps) {
         approvedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
+
+      // Sync to costingPhases for Project Management tracking
+      try {
+        const phasePayload = {
+          jobId: co.jobId as string,
+          jobName: co.jobName as string,
+          costCode: co.coNumber as string,
+          label: co.subject as string,
+          subgrouping: "CHANGE ORDER" as const,
+          coId: coId,
+          estMaterialCost: Number(co.materialCost) || 0,
+          estLaborCost: totals.laborBilling,
+          estHours: Number(co.laborHours) || 0,
+          mMarkup: materialMarkup,
+          lMarkup: 0,
+          contractValue: totals.amountApproved,
+          updatedAt: serverTimestamp(),
+        };
+        const existing = await getDocs(
+          query(collection(db, "costingPhases"), where("coId", "==", coId))
+        );
+        if (existing.empty) {
+          await addDoc(collection(db, "costingPhases"), {
+            ...phasePayload,
+            importedAt: serverTimestamp(),
+          });
+        } else {
+          await updateDoc(existing.docs[0].ref, phasePayload);
+        }
+      } catch (err) {
+        console.warn("Could not sync CO to costingPhases:", err);
+      }
+
       onClose?.();
     } catch (err) {
       console.error("Failed to approve:", err);

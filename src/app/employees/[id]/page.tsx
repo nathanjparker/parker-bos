@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
+import FileList from "@/components/FileList";
+import FileUpload from "@/components/FileUpload";
 import { db } from "@/lib/firebase";
 import {
   EMPLOYEE_ROLE_BADGE,
@@ -200,6 +202,23 @@ export default function EmployeeDetailPage() {
               {employee.expGas && <InfoRow label="Gas Expires">{employee.expGas}</InfoRow>}
             </Section>
           )}
+
+          {/* Files */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Files</h2>
+              <FileUpload
+                entityType="employee"
+                entityId={id}
+                entityName={employeeDisplayName(employee)}
+              />
+            </div>
+            <FileList
+              entityType="employee"
+              entityId={id}
+              entityName={employeeDisplayName(employee)}
+            />
+          </div>
         </div>
       </div>
     </AppShell>

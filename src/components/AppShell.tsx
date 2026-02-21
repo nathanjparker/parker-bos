@@ -6,16 +6,31 @@ import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
 
-const NAV_ITEMS = [
+type NavChild = { label: string; href: string };
+type NavItem = {
+  label: string;
+  href: string;
+  comingSoon?: boolean;
+  children?: NavChild[];
+};
+
+const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Jobs", href: "/jobs" },
+  {
+    label: "Jobs",
+    href: "/jobs",
+    children: [
+      { label: "All Jobs", href: "/jobs" },
+      { label: "Project Management", href: "/project-management" },
+    ],
+  },
   { label: "Companies", href: "/companies" },
   { label: "Contacts", href: "/contacts" },
   { label: "Employees", href: "/employees" },
   { label: "Jurisdictions", href: "/jurisdictions" },
   { label: "Change Orders", href: "/change-orders" },
   { label: "Purchase Orders", href: "/pos", comingSoon: true },
-  { label: "Files", href: "/files", comingSoon: true },
+  { label: "Files", href: "/files" },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -25,6 +40,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedNav, setExpandedNav] = useState<string | null>(null);
 
   const auth = useMemo(() => {
     try {
@@ -85,7 +101,55 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           const active =
             item.href === "/dashboard"
               ? pathname === "/dashboard"
+              : item.children
+              ? pathname.startsWith("/jobs") || pathname.startsWith("/project-management")
               : pathname.startsWith(item.href);
+          const isExpanded = expandedNav === item.href ||
+            (item.children && (pathname.startsWith("/jobs") || pathname.startsWith("/project-management")));
+
+          if (item.children) {
+            return (
+              <div key={item.href}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedNav(isExpanded ? null : item.href)}
+                  className={`w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-blue-600 text-white"
+                      : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                  }`}
+                >
+                  {item.label}
+                  <svg
+                    className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                  </svg>
+                </button>
+                {isExpanded && (
+                  <div className="mt-0.5 ml-2 space-y-0.5 border-l border-gray-700 pl-3">
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`block rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                          pathname === child.href || (child.href !== "/jobs" && pathname.startsWith(child.href))
+                            ? "text-white"
+                            : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                        }`}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.href}

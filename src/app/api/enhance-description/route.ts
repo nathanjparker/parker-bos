@@ -68,9 +68,12 @@ OUTPUT: Only the enhanced description, no preamble or explanation.`;
     if (!res.ok) {
       const message = (data.error?.message as string) || res.statusText || "Anthropic API error";
       const isAuthError = res.status === 401 || /invalid x-api-key|invalid api key/i.test(message);
+      const isOverloaded = res.status === 503 || /overloaded|capacity|rate limit/i.test(message);
       const userMessage = isAuthError
         ? "Invalid Anthropic API key. Check ANTHROPIC_API_KEY in .env.local (no quotes or spaces), then restart the dev server."
-        : message;
+        : isOverloaded
+          ? "AI service is temporarily busy. Please try again in a minute."
+          : message;
       return NextResponse.json(
         { error: userMessage },
         { status: 500 }
