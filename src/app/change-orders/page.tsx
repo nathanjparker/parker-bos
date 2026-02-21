@@ -47,6 +47,7 @@ const STATUS_BADGE_CLASS: Record<COStatus, string> = {
 type ChangeOrderRow = {
   id: string;
   coNumber: string;
+  jobId: string;
   jobNumber: string;
   jobName: string;
   subject: string;
@@ -91,6 +92,7 @@ export default function ChangeOrdersPage() {
           return {
             id: docSnap.id,
             coNumber: (d.coNumber as string) ?? "",
+            jobId: (d.jobId as string) ?? "",
             jobNumber: (d.jobNumber as string) ?? "",
             jobName: (d.jobName as string) ?? "",
             subject: (d.subject as string) ?? "",
@@ -321,8 +323,17 @@ export default function ChangeOrdersPage() {
                         {row.coNumber || row.id}
                       </button>
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                      {row.jobName}
+                    <td className="whitespace-nowrap px-4 py-3 text-sm">
+                      {row.jobId ? (
+                        <Link
+                          href={`/jobs/${row.jobId}`}
+                          className="text-gray-900 hover:text-blue-600 hover:underline"
+                        >
+                          {row.jobName}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-900">{row.jobName}</span>
+                      )}
                     </td>
                     <td className="max-w-[200px] px-4 py-3 text-sm text-gray-600">
                       {truncate(row.subject || row.description, 60)}

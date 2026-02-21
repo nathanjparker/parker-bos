@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -62,6 +63,8 @@ export function ChangeOrderReview({ coId, onClose }: ChangeOrderReviewProps) {
   const [error, setError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [showRejectInput, setShowRejectInput] = useState(false);
 
@@ -244,6 +247,18 @@ export function ChangeOrderReview({ coId, onClose }: ChangeOrderReviewProps) {
     }
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, "changeOrders", coId));
+      onClose?.();
+    } catch (err) {
+      console.error("Failed to delete CO:", err);
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -284,15 +299,47 @@ export function ChangeOrderReview({ coId, onClose }: ChangeOrderReviewProps) {
           <h2 className="text-lg font-semibold text-gray-900">
             Change order — {(co.coNumber as string) || coId}
           </h2>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              Close
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {confirmDelete ? (
+              <>
+                <span className="text-sm text-gray-600">Delete this CO?</span>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {deleting ? "Deleting…" : "Yes, delete"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  Delete
+                </button>
+                {onClose && (
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-lg px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  >
+                    Close
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="space-y-6 p-6">

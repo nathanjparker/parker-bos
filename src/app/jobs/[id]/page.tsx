@@ -520,6 +520,11 @@ function BudgetPhaseTable({ phases }: { phases: CostingPhase[] }) {
             return (
               <tr key={p.id} className={complete ? "bg-green-100" : ""}>
                 <td className={`px-3 py-2 font-medium ${complete ? "text-green-800" : "text-gray-900"}`}>
+                  {p.subgrouping === "CHANGE ORDER" && (
+                    <span className={`mr-1.5 text-[11px] font-semibold ${complete ? "text-green-500" : "text-gray-400"}`}>
+                      {p.costCode.replace(/^CO-/i, "")}
+                    </span>
+                  )}
                   {p.label}
                 </td>
                 <td className={`px-3 py-2 tabular-nums ${complete ? "text-green-700" : "text-gray-600"}`}>{fmt(p.estMaterialCost)}</td>
