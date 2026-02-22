@@ -1,0 +1,2 @@
+# Firebase Cloud Functions — deployed separately via Firebase, not part of Next.js build
+functions
