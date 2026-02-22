@@ -18,7 +18,7 @@ import { db } from "@/lib/firebase";
 import { calcBillable, type CostingPhase } from "@/types/costing";
 import { PHASE_BADGE_CLASS, type Job } from "@/types/jobs";
 
-type PhaseFilter = "Both" | "Awarded" | "Active";
+type PhaseFilter = "Both" | "Awarded" | "Active" | "Install";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("en-US", {
@@ -399,11 +399,11 @@ export default function ProjectManagementPage() {
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("Both");
   const [importJobId, setImportJobId] = useState<string | null>(null);
 
-  // Listen to Awarded + Active jobs
+  // Listen to Awarded, Active, and Install jobs (all tracked in PM)
   useEffect(() => {
     const q = query(
       collection(db, "Jobs"),
-      where("projectPhase", "in", ["Awarded", "Active"]),
+      where("projectPhase", "in", ["Awarded", "Active", "Install"]),
       orderBy("jobName", "asc")
     );
     return onSnapshot(q, (snap) => {
@@ -480,6 +480,14 @@ export default function ProjectManagementPage() {
   }, [filteredJobs, phases]);
 
   const [collapsedJobs, setCollapsedJobs] = useState<Set<string>>(new Set());
+  const hasInitialCollapseRef = useRef(false);
+
+  useEffect(() => {
+    if (filteredJobs.length > 0 && !hasInitialCollapseRef.current) {
+      hasInitialCollapseRef.current = true;
+      setCollapsedJobs(new Set(filteredJobs.map((j) => j.id)));
+    }
+  }, [filteredJobs]);
 
   function toggleJob(id: string) {
     setCollapsedJobs((prev) => {
@@ -532,7 +540,7 @@ export default function ProjectManagementPage() {
         {/* Filter tabs + collapse all */}
         <div className="mt-6 flex items-center justify-between">
           <div className="flex gap-2">
-            {(["Both", "Awarded", "Active"] as PhaseFilter[]).map((f) => (
+            {(["Both", "Awarded", "Active", "Install"] as PhaseFilter[]).map((f) => (
               <button
                 key={f}
                 type="button"
@@ -566,13 +574,14 @@ export default function ProjectManagementPage() {
             </div>
           ) : filteredJobs.length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white px-6 py-12 text-center text-sm text-gray-500 shadow-sm">
-              No {phaseFilter === "Both" ? "Awarded or Active" : phaseFilter} jobs found.
+              No {phaseFilter === "Both" ? "Awarded, Active, or Install" : phaseFilter} jobs found.
             </div>
           ) : (
             filteredJobs.map((job) => {
               const jobPhases = phasesByJob.get(job.id) ?? [];
               const contracted = jobPhases.filter((p) => p.subgrouping === "CONTRACTED WORK");
               const cos = jobPhases.filter((p) => p.subgrouping === "CHANGE ORDER");
+              const fixturePhases = jobPhases.filter((p) => p.subgrouping === "FIXTURE");
               const jobContract = jobPhases.reduce((s, p) => s + p.contractValue, 0);
               const jobBillable = jobPhases.reduce((s, p) => s + calcBillable(p.contractValue, p.completedPct), 0);
               const collapsed = collapsedJobs.has(job.id);
@@ -660,6 +669,14 @@ export default function ProjectManagementPage() {
                               Change Orders
                             </p>
                             <PhaseTable phases={cos} onUpdate={handleUpdate} />
+                          </div>
+                        )}
+                        {fixturePhases.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+                              Fixtures
+                            </p>
+                            <PhaseTable phases={fixturePhases} onUpdate={handleUpdate} />
                           </div>
                         )}
                       </div>

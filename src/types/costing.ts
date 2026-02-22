@@ -6,7 +6,7 @@ export interface CostingPhase {
   jobName: string;
   costCode: string;
   label: string;
-  subgrouping: "CONTRACTED WORK" | "CHANGE ORDER";
+  subgrouping: "CONTRACTED WORK" | "CHANGE ORDER" | "FIXTURE";
   coId?: string;
   estMaterialCost: number;
   estLaborCost: number;
@@ -56,7 +56,7 @@ export interface ParsedPhaseRow {
 }
 
 /** Parse TSV clipboard data from estimating software into grouped phase rows. */
-export function parseBudgetTSV(text: string): ParsedPhaseRow[] {
+export function parseBudgetTSV(text: string, labelMap?: Map<string, string>): ParsedPhaseRow[] {
   const lines = text
     .split("\n")
     .map((l) => l.trim())
@@ -106,7 +106,7 @@ export function parseBudgetTSV(text: string): ParsedPhaseRow[] {
 
   return Object.entries(grouped).map(([costCode, vals]) => ({
     costCode,
-    label: COST_CODE_LABELS[costCode] ?? costCode,
+    label: (labelMap ?? new Map(Object.entries(COST_CODE_LABELS))).get(costCode) ?? costCode,
     estMaterialCost: vals.mCost,
     estLaborCost: vals.lCost,
     estHours: vals.hours,

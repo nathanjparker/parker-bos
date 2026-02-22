@@ -69,6 +69,7 @@ export function defaultFilePhaseForJob(projectPhase: string): JobFilePhase {
     case "Awarded":
       return "Awarded";
     case "Active":
+    case "Install":
     case "Warranty":
       return "Active";
     case "Closed":

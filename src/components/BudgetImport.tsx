@@ -7,17 +7,18 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  orderBy,
   query,
   serverTimestamp,
   where,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
-  COST_CODE_LABELS,
   parseBudgetTSV,
   type CostingPhase,
   type ParsedPhaseRow,
 } from "@/types/costing";
+import type { CostCode } from "@/types/costCodes";
 
 interface Props {
   jobId: string;
@@ -52,6 +53,18 @@ export default function BudgetImport({ jobId, jobName, existingPhases, onClose }
   const [diff, setDiff] = useState<DiffRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [costCodes, setCostCodes] = useState<CostCode[]>([]);
+
+  // Load cost codes from Firestore for sort order + label lookup
+  useEffect(() => {
+    getDocs(query(collection(db, "costCodes"), orderBy("sortOrder", "asc")))
+      .then((snap) => {
+        setCostCodes(
+          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CostCode, "id">) }))
+        );
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     if (!text.trim()) {
@@ -59,7 +72,8 @@ export default function BudgetImport({ jobId, jobName, existingPhases, onClose }
       setDiff([]);
       return;
     }
-    const rows = parseBudgetTSV(text);
+    const labelMap = new Map(costCodes.map((c) => [c.code, c.label]));
+    const rows = parseBudgetTSV(text, labelMap.size > 0 ? labelMap : undefined);
     setParsed(rows);
 
     const contractedExisting = existingPhases.filter(
@@ -103,11 +117,11 @@ export default function BudgetImport({ jobId, jobName, existingPhases, onClose }
       }
     }
 
-    // Sort: known cost code order first, then alphabetical
-    const ORDER = Object.keys(COST_CODE_LABELS);
+    // Sort by Firestore costCodes sortOrder, then alphabetical for unknowns
+    const codeOrder = costCodes.map((c) => c.code);
     diffRows.sort((a, b) => {
-      const ai = ORDER.indexOf(a.costCode);
-      const bi = ORDER.indexOf(b.costCode);
+      const ai = codeOrder.indexOf(a.costCode);
+      const bi = codeOrder.indexOf(b.costCode);
       if (ai !== -1 && bi !== -1) return ai - bi;
       if (ai !== -1) return -1;
       if (bi !== -1) return 1;
@@ -115,7 +129,7 @@ export default function BudgetImport({ jobId, jobName, existingPhases, onClose }
     });
 
     setDiff(diffRows);
-  }, [text, existingPhases]);
+  }, [text, existingPhases, costCodes]);
 
   const hasWarnings = diff.some(
     (d) => d.hasActuals && (d.status === "removed" || d.status === "updated")
@@ -151,7 +165,7 @@ export default function BudgetImport({ jobId, jobName, existingPhases, onClose }
       // Write new phases, preserving actuals for matching cost codes
       await Promise.all(
         parsed.map((row) => {
-          const actuals = actualsMap.get(row.costCode) ?? {};
+          const actuals = actualsMap.get(row.costCode);
           const payload: Record<string, unknown> = {
             jobId,
             jobName,
@@ -167,10 +181,10 @@ export default function BudgetImport({ jobId, jobName, existingPhases, onClose }
             importedAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           };
-          if (actuals.actualMaterials != null) payload.actualMaterials = actuals.actualMaterials;
-          if (actuals.actualHours != null) payload.actualHours = actuals.actualHours;
-          if (actuals.completedPct != null) payload.completedPct = actuals.completedPct;
-          if (actuals.notes) payload.notes = actuals.notes;
+          if (actuals?.actualMaterials != null) payload.actualMaterials = actuals.actualMaterials;
+          if (actuals?.actualHours != null) payload.actualHours = actuals.actualHours;
+          if (actuals?.completedPct != null) payload.completedPct = actuals.completedPct;
+          if (actuals?.notes) payload.notes = actuals.notes;
           return addDoc(collection(db, "costingPhases"), payload);
         })
       );

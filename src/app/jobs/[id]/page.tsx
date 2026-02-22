@@ -408,10 +408,11 @@ export default function JobDetailPage() {
           </div>
         </div>
 
-        {/* Budget / Costing — Awarded and Active jobs only */}
-        {(job.projectPhase === "Awarded" || job.projectPhase === "Active") && (() => {
+        {/* Budget / Costing — Awarded, Active, and Install jobs */}
+        {(job.projectPhase === "Awarded" || job.projectPhase === "Active" || job.projectPhase === "Install") && (() => {
           const contracted = costingPhases.filter((p) => p.subgrouping === "CONTRACTED WORK");
           const cos = costingPhases.filter((p) => p.subgrouping === "CHANGE ORDER");
+          const fixturePhases = costingPhases.filter((p) => p.subgrouping === "FIXTURE");
           const totalContract = costingPhases.reduce((s, p) => s + p.contractValue, 0);
           const totalBillable = costingPhases.reduce((s, p) => s + calcBillable(p.contractValue, p.completedPct), 0);
 
@@ -477,6 +478,12 @@ export default function JobDetailPage() {
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Change Orders</p>
                       <BudgetPhaseTable phases={cos} />
+                    </div>
+                  )}
+                  {fixturePhases.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Fixtures</p>
+                      <BudgetPhaseTable phases={fixturePhases} />
                     </div>
                   )}
                 </div>

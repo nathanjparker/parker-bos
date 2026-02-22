@@ -106,7 +106,7 @@ export default function JobsPage() {
           </button>
           {PROJECT_PHASES.map((phase) => {
             const count = phaseCounts[phase] ?? 0;
-            if (count === 0 && phaseFilter !== phase) return null;
+            if (count === 0 && phaseFilter !== phase && phase !== "Install") return null;
             return (
               <button
                 key={phase}

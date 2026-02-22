@@ -94,18 +94,23 @@ export default function ContactForm({
 
     try {
       if (contact) {
-        await updateDoc(doc(db, "contacts", contact.id), {
-          ...payload,
-          updatedAt: serverTimestamp(),
-        });
+        const updateData = { ...payload, updatedAt: serverTimestamp() };
+        const clean = Object.fromEntries(
+          Object.entries(updateData).filter(([, v]) => v !== undefined)
+        ) as Record<string, unknown>;
+        await updateDoc(doc(db, "contacts", contact.id), clean);
         router.push(`/contacts/${contact.id}`);
       } else {
-        const ref = await addDoc(collection(db, "contacts"), {
+        const docData = {
           ...payload,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
           createdBy,
-        });
+        };
+        const clean = Object.fromEntries(
+          Object.entries(docData).filter(([, v]) => v !== undefined)
+        ) as Record<string, unknown>;
+        const ref = await addDoc(collection(db, "contacts"), clean);
         router.push(`/contacts/${ref.id}`);
       }
     } catch (err) {

@@ -14,6 +14,8 @@ type NavItem = {
   children?: NavChild[];
 };
 
+const JOBS_PATHS = ["/jobs", "/project-management", "/estimates", "/change-orders"];
+
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard" },
   {
@@ -22,15 +24,17 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { label: "All Jobs", href: "/jobs" },
       { label: "Project Management", href: "/project-management" },
+      { label: "Estimates", href: "/estimates" },
+      { label: "Change Orders", href: "/change-orders" },
     ],
   },
   { label: "Companies", href: "/companies" },
   { label: "Contacts", href: "/contacts" },
   { label: "Employees", href: "/employees" },
   { label: "Jurisdictions", href: "/jurisdictions" },
-  { label: "Change Orders", href: "/change-orders" },
   { label: "Purchase Orders", href: "/pos", comingSoon: true },
   { label: "Files", href: "/files" },
+  { label: "Settings", href: "/settings" },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -98,14 +102,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
         {NAV_ITEMS.map((item) => {
+          const jobsActive = JOBS_PATHS.some((p) => pathname.startsWith(p));
           const active =
             item.href === "/dashboard"
               ? pathname === "/dashboard"
               : item.children
-              ? pathname.startsWith("/jobs") || pathname.startsWith("/project-management")
+              ? jobsActive
               : pathname.startsWith(item.href);
-          const isExpanded = expandedNav === item.href ||
-            (item.children && (pathname.startsWith("/jobs") || pathname.startsWith("/project-management")));
+          const isExpanded = expandedNav === item.href || (item.children && jobsActive);
 
           if (item.children) {
             return (
