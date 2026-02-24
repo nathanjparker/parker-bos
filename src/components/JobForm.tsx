@@ -10,6 +10,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -23,6 +24,9 @@ type TeamField = {
   name: string;
 };
 
+const PHASES_WITH_BID_DUE: ProjectPhase[] = ["Lead", "Bidding"];
+const PHASES_WITH_PARCEL: ProjectPhase[] = ["Awarded", "Active", "Install", "Warranty", "Closed"];
+
 type FormValues = {
   jobName: string;
   projectPhase: ProjectPhase;
@@ -35,6 +39,8 @@ type FormValues = {
   siteState: string;
   siteZip: string;
   originalContractValue: string;
+  parcelNumber: string;
+  bidDueDate: string;
   estimator: TeamField;
   pm: TeamField;
   superintendent: TeamField;
@@ -54,6 +60,8 @@ const EMPTY: FormValues = {
   siteState: "WA",
   siteZip: "",
   originalContractValue: "",
+  parcelNumber: "",
+  bidDueDate: "",
   estimator: EMPTY_TEAM,
   pm: EMPTY_TEAM,
   superintendent: EMPTY_TEAM,
@@ -73,6 +81,10 @@ function jobToForm(job: Job): FormValues {
     siteZip: job.siteZip ?? "",
     originalContractValue: job.originalContractValue
       ? String(job.originalContractValue)
+      : "",
+    parcelNumber: job.parcelNumber ?? "",
+    bidDueDate: job.bidDueDate
+      ? (job.bidDueDate as Timestamp).toDate().toISOString().slice(0, 10)
       : "",
     estimator: { id: job.estimatorId ?? "", name: job.estimatorName ?? "" },
     pm: { id: job.pmId ?? "", name: job.pmName ?? "" },
@@ -179,6 +191,10 @@ export default function JobForm({
       siteZip: values.siteZip.trim() || undefined,
       originalContractValue: values.originalContractValue
         ? Number(values.originalContractValue.replace(/[^0-9.]/g, ""))
+        : undefined,
+      parcelNumber: values.parcelNumber.trim() || undefined,
+      bidDueDate: values.bidDueDate.trim()
+        ? Timestamp.fromDate(new Date(values.bidDueDate))
         : undefined,
       estimatorId: values.estimator.id || undefined,
       estimatorName: values.estimator.name || undefined,
@@ -292,15 +308,27 @@ export default function JobForm({
               ))}
             </select>
           </Field>
-          <Field label="Original Contract Value">
-            <input
-              type="text"
-              className={inputCls}
-              placeholder="e.g. 315000"
-              value={values.originalContractValue}
-              onChange={(e) => set("originalContractValue", e.target.value)}
-            />
-          </Field>
+          {PHASES_WITH_BID_DUE.includes(values.projectPhase) && (
+            <Field label="Bid Due Date">
+              <input
+                type="date"
+                className={inputCls}
+                value={values.bidDueDate}
+                onChange={(e) => set("bidDueDate", e.target.value)}
+              />
+            </Field>
+          )}
+          {PHASES_WITH_PARCEL.includes(values.projectPhase) && (
+            <Field label="Parcel #">
+              <input
+                type="text"
+                className={inputCls}
+                placeholder="e.g. 123456-001"
+                value={values.parcelNumber}
+                onChange={(e) => set("parcelNumber", e.target.value)}
+              />
+            </Field>
+          )}
         </div>
       </div>
 

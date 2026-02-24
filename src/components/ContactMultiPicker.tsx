@@ -31,7 +31,7 @@ export default function ContactMultiPicker({ value, onChange }: Props) {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return contacts.slice(0, 50); // cap unfiltered list
+    if (!term) return contacts.slice(0, 80);
     return contacts.filter((c) => {
       const name = contactDisplayName(c).toLowerCase();
       const title = (c.title ?? "").toLowerCase();
@@ -94,7 +94,7 @@ export default function ContactMultiPicker({ value, onChange }: Props) {
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+          className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
         />
         {open && !loading && filtered.length > 0 && (
           <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">

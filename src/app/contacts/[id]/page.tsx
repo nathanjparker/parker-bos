@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { doc, onSnapshot } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import { db } from "@/lib/firebase";
+import { formatPhoneDisplay, formatPhoneTel } from "@/lib/format";
 import { contactDisplayName, type Contact } from "@/types/companies";
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -91,8 +92,8 @@ export default function ContactDetailPage() {
             )}
             {contact.phone && (
               <InfoRow label="Phone">
-                <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">
-                  {contact.phone}
+                <a href={`tel:${formatPhoneTel(contact.phone)}`} className="text-blue-600 hover:underline">
+                  {formatPhoneDisplay(contact.phone)}
                 </a>
               </InfoRow>
             )}

@@ -6,6 +6,7 @@ import {
   arrayRemove,
   arrayUnion,
   collection,
+  deleteDoc,
   doc,
   onSnapshot,
   orderBy,
@@ -14,6 +15,7 @@ import {
 } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import { db } from "@/lib/firebase";
+import { formatPhoneDisplay } from "@/lib/format";
 import {
   COMPANY_TYPE_BADGE,
   COMPANY_TYPE_LABEL,
@@ -36,6 +38,26 @@ export default function CompaniesPage() {
   const [addingTagForId, setAddingTagForId] = useState<string | null>(null);
   const [inlineTagInput, setInlineTagInput] = useState("");
   const inlineInputRef = useRef<HTMLInputElement>(null);
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function handleDelete(co: Company) {
+    if (
+      !window.confirm(
+        `Delete company "${co.name}"? This cannot be undone.`
+      )
+    )
+      return;
+    setDeletingId(co.id);
+    try {
+      await deleteDoc(doc(db, "companies", co.id));
+    } catch (err) {
+      console.error("Delete company error:", err);
+      alert("Failed to delete company. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   useEffect(() => {
     const q = query(collection(db, "companies"), orderBy("name", "asc"));
@@ -320,15 +342,40 @@ export default function CompaniesPage() {
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                      {co.phone || "—"}
+                      {co.phone ? formatPhoneDisplay(co.phone) : "—"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
-                      <Link
-                        href={`/companies/${co.id}/edit`}
-                        className="text-xs font-semibold text-gray-400 hover:text-gray-700"
-                      >
-                        Edit
-                      </Link>
+                      <span className="inline-flex items-center gap-2">
+                        <Link
+                          href={`/companies/${co.id}/edit`}
+                          className="text-xs font-semibold text-gray-400 hover:text-gray-700"
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(co)}
+                          disabled={deletingId === co.id}
+                          title="Delete company"
+                          className="text-gray-400 hover:text-red-600 disabled:opacity-50"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="h-4 w-4"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                            />
+                          </svg>
+                        </button>
+                      </span>
                     </td>
                   </tr>
                 ))}

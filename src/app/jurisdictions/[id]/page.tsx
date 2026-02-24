@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import { db } from "@/lib/firebase";
+import { formatPhoneDisplay, formatPhoneTel } from "@/lib/format";
 import { contactDisplayName, type Contact } from "@/types/companies";
 import { type Jurisdiction } from "@/types/jurisdictions";
 
@@ -110,8 +111,8 @@ export default function JurisdictionDetailPage() {
               <DetailRow
                 label="Office Phone"
                 value={
-                  <a href={`tel:${jurisdiction.phone}`} className="text-blue-600 hover:underline">
-                    {jurisdiction.phone}
+                  <a href={`tel:${formatPhoneTel(jurisdiction.phone)}`} className="text-blue-600 hover:underline">
+                    {formatPhoneDisplay(jurisdiction.phone)}
                   </a>
                 }
               />
@@ -120,8 +121,8 @@ export default function JurisdictionDetailPage() {
               <DetailRow
                 label="Inspection Request Line"
                 value={
-                  <a href={`tel:${jurisdiction.inspectionPhone}`} className="text-orange-600 font-medium hover:underline">
-                    {jurisdiction.inspectionPhone}
+                  <a href={`tel:${formatPhoneTel(jurisdiction.inspectionPhone)}`} className="text-orange-600 font-medium hover:underline">
+                    {formatPhoneDisplay(jurisdiction.inspectionPhone)}
                   </a>
                 }
               />

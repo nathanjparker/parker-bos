@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import BudgetImport from "@/components/BudgetImport";
+import ContactDetailModal from "@/components/ContactDetailModal";
 import FileList from "@/components/FileList";
 import FileUpload from "@/components/FileUpload";
 import { db, getFirebaseAuth } from "@/lib/firebase";
@@ -68,6 +69,7 @@ export default function JobDetailPage() {
   const [activeCategory, setActiveCategory] = useState<JobFileCategory>("Schedule");
   const [costingPhases, setCostingPhases] = useState<CostingPhase[]>([]);
   const [showBudgetImport, setShowBudgetImport] = useState(false);
+  const [contactModalId, setContactModalId] = useState<string | null>(null);
 
   const auth = useMemo(() => {
     try {
@@ -241,6 +243,19 @@ export default function JobDetailPage() {
                   label="Current Value"
                   value={formatCurrency(job.currentContractValue)}
                 />
+                {job.bidDueDate != null && "toDate" in job.bidDueDate && (
+                  <InfoRow
+                    label="Bid Due Date"
+                    value={job.bidDueDate.toDate().toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  />
+                )}
+                {job.parcelNumber && (
+                  <InfoRow label="Parcel #" value={job.parcelNumber} />
+                )}
               </dl>
             </div>
 
@@ -261,12 +276,73 @@ export default function JobDetailPage() {
                   Team
                 </h2>
                 <dl className="space-y-3">
-                  <InfoRow label="Estimator" value={job.estimatorName} />
-                  <InfoRow label="Project Manager" value={job.pmName} />
-                  <InfoRow label="Superintendent" value={job.superintendentName} />
+                  {job.estimatorName && (
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Estimator
+                      </dt>
+                      <dd className="mt-0.5 text-sm text-gray-900">
+                        {job.estimatorId ? (
+                          <button
+                            type="button"
+                            onClick={() => setContactModalId(job.estimatorId!)}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {job.estimatorName}
+                          </button>
+                        ) : (
+                          job.estimatorName
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                  {job.pmName && (
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Project Manager
+                      </dt>
+                      <dd className="mt-0.5 text-sm text-gray-900">
+                        {job.pmId ? (
+                          <button
+                            type="button"
+                            onClick={() => setContactModalId(job.pmId!)}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {job.pmName}
+                          </button>
+                        ) : (
+                          job.pmName
+                        )}
+                      </dd>
+                    </div>
+                  )}
+                  {job.superintendentName && (
+                    <div>
+                      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Superintendent
+                      </dt>
+                      <dd className="mt-0.5 text-sm text-gray-900">
+                        {job.superintendentId ? (
+                          <button
+                            type="button"
+                            onClick={() => setContactModalId(job.superintendentId!)}
+                            className="text-blue-600 hover:underline"
+                          >
+                            {job.superintendentName}
+                          </button>
+                        ) : (
+                          job.superintendentName
+                        )}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
               </div>
             )}
+            <ContactDetailModal
+              contactId={contactModalId}
+              onClose={() => setContactModalId(null)}
+            />
           </div>
 
           {/* Right column — activity */}

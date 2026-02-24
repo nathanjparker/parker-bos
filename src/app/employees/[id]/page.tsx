@@ -8,6 +8,7 @@ import AppShell from "@/components/AppShell";
 import FileList from "@/components/FileList";
 import FileUpload from "@/components/FileUpload";
 import { db } from "@/lib/firebase";
+import { formatPhoneDisplay, formatPhoneTel } from "@/lib/format";
 import {
   EMPLOYEE_ROLE_BADGE,
   EMPLOYEE_ROLES,
@@ -124,8 +125,8 @@ export default function EmployeeDetailPage() {
           <Section title="Contact Info">
             {employee.phone && (
               <InfoRow label="Phone">
-                <a href={`tel:${employee.phone}`} className="text-blue-600 hover:underline">
-                  {employee.phone}
+                <a href={`tel:${formatPhoneTel(employee.phone)}`} className="text-blue-600 hover:underline">
+                  {formatPhoneDisplay(employee.phone)}
                 </a>
               </InfoRow>
             )}
@@ -173,8 +174,8 @@ export default function EmployeeDetailPage() {
               )}
               {employee.emergency1Phone && (
                 <InfoRow label="EC1 Phone">
-                  <a href={`tel:${employee.emergency1Phone}`} className="text-blue-600 hover:underline">
-                    {employee.emergency1Phone}
+                  <a href={`tel:${formatPhoneTel(employee.emergency1Phone)}`} className="text-blue-600 hover:underline">
+                    {formatPhoneDisplay(employee.emergency1Phone)}
                   </a>
                 </InfoRow>
               )}
@@ -183,8 +184,8 @@ export default function EmployeeDetailPage() {
               )}
               {employee.emergency2Phone && (
                 <InfoRow label="EC2 Phone">
-                  <a href={`tel:${employee.emergency2Phone}`} className="text-blue-600 hover:underline">
-                    {employee.emergency2Phone}
+                  <a href={`tel:${formatPhoneTel(employee.emergency2Phone)}`} className="text-blue-600 hover:underline">
+                    {formatPhoneDisplay(employee.emergency2Phone)}
                   </a>
                 </InfoRow>
               )}

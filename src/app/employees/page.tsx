@@ -5,6 +5,7 @@ import Link from "next/link";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import { db } from "@/lib/firebase";
+import { formatPhoneDisplay, formatPhoneTel } from "@/lib/format";
 import {
   EMPLOYEE_ROLE_BADGE,
   EMPLOYEE_ROLES,
@@ -179,7 +180,7 @@ export default function EmployeesPage() {
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
                         {e.phone ? (
-                          <a href={`tel:${e.phone}`} className="hover:text-blue-600">{e.phone}</a>
+                          <a href={`tel:${formatPhoneTel(e.phone)}`} className="hover:text-blue-600">{formatPhoneDisplay(e.phone)}</a>
                         ) : "—"}
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">

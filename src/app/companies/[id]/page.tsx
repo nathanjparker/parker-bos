@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import { db, getFirebaseAuth } from "@/lib/firebase";
+import { formatPhoneDisplay, formatPhoneTel } from "@/lib/format";
 import {
   COMPANY_TYPE_BADGE,
   COMPANY_TYPE_LABEL,
@@ -234,8 +235,8 @@ export default function CompanyDetailPage() {
                   <div>
                     <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Phone</dt>
                     <dd className="mt-0.5">
-                      <a href={`tel:${company.phone}`} className="text-blue-600 hover:underline">
-                        {company.phone}
+                      <a href={`tel:${formatPhoneTel(company.phone)}`} className="text-blue-600 hover:underline">
+                        {formatPhoneDisplay(company.phone)}
                       </a>
                     </dd>
                   </div>
@@ -467,8 +468,8 @@ export default function CompanyDetailPage() {
                             )}
                             <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
                               {c.phone && (
-                                <a href={`tel:${c.phone}`} className="text-xs text-blue-600 hover:underline">
-                                  {c.phone}
+                                <a href={`tel:${formatPhoneTel(c.phone)}`} className="text-xs text-blue-600 hover:underline">
+                                  {formatPhoneDisplay(c.phone)}
                                 </a>
                               )}
                               {c.email && (

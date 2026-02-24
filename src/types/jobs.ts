@@ -55,6 +55,7 @@ export interface Job {
   jurisdictionName?: string;
   originalContractValue?: number;
   currentContractValue?: number;
+  parcelNumber?: string;
   bidDueDate?: Timestamp | null;
   submittedDate?: Timestamp | null;
   startDate?: Timestamp | null;

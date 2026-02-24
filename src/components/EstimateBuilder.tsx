@@ -223,13 +223,18 @@ export default function EstimateBuilder({ estimateId }: Props) {
     return allCompanies.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 8);
   }, [gcSearch, allCompanies]);
 
-  // Estimator search filter (people/contacts)
+  // Estimator search filter (people/contacts) — show from first character, match name/title/company
   const estimatorSuggestions = useMemo(() => {
-    if (estimatorSearch.length < 2) return [];
-    const q = estimatorSearch.toLowerCase();
+    const q = estimatorSearch.trim().toLowerCase();
+    if (!q) return allContacts.slice(0, 12);
     return allContacts
-      .filter((c) => contactDisplayName(c).toLowerCase().includes(q))
-      .slice(0, 8);
+      .filter((c) => {
+        const name = contactDisplayName(c).toLowerCase();
+        const title = (c.title ?? "").toLowerCase();
+        const company = (c.companyName ?? "").toLowerCase();
+        return name.includes(q) || title.includes(q) || company.includes(q);
+      })
+      .slice(0, 12);
   }, [estimatorSearch, allContacts]);
 
   // Create estimate doc on first meaningful action, returns id
@@ -798,11 +803,12 @@ export default function EstimateBuilder({ estimateId }: Props) {
               }}
               onFocus={() => setShowEstimatorSuggestions(true)}
               onBlur={() => {
-                setTimeout(() => setShowEstimatorSuggestions(false), 150);
+                setTimeout(() => setShowEstimatorSuggestions(false), 180);
                 saveHeader();
               }}
-              placeholder="Search people…"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Type to search name, title, or company…"
+              autoComplete="off"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             {showEstimatorSuggestions && estimatorSuggestions.length > 0 && (
               <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
