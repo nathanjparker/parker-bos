@@ -133,13 +133,15 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
   // Load active exclusion library; default all checked for new estimates
   useEffect(() => {
     getDocs(
-      query(collection(db, "exclusionLibrary"), where("active", "==", true), orderBy("sortOrder", "asc"))
+      query(collection(db, "exclusionLibrary"), orderBy("sortOrder", "asc"))
     )
       .then((snap) => {
-        const items = snap.docs.map((d) => {
-          const data = d.data() as { text: string };
-          return { id: d.id, text: data.text };
-        });
+        const items = snap.docs
+          .filter((d) => d.data().active !== false)
+          .map((d) => {
+            const data = d.data() as { text: string };
+            return { id: d.id, text: data.text };
+          });
         setExclusionLibrary(items);
         if (!estimateId) setSelectedExclusions(new Set(items.map((ex) => ex.text)));
       })
