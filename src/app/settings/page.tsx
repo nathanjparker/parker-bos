@@ -12,6 +12,7 @@ import {
   query,
   updateDoc,
 } from "firebase/firestore";
+import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { db } from "@/lib/firebase";
 import { SEED_COST_CODES, type CostCode } from "@/types/costCodes";
@@ -329,6 +330,24 @@ export default function SettingsPage() {
           Deleting a code only removes it from this list. Existing phases and estimates that used
           the code will continue to show the raw code string as a fallback.
         </p>
+
+        {/* Exclusion Library */}
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">Exclusion Library</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Manage standard exclusions used in estimates and proposals.
+              </p>
+            </div>
+            <Link
+              href="/settings/exclusions"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Manage →
+            </Link>
+          </div>
+        </div>
       </div>
     </AppShell>
   );
