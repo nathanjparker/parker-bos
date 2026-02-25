@@ -8,6 +8,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   query,
   updateDoc,
   serverTimestamp,
@@ -216,6 +217,32 @@ export function ChangeOrderReview({ coId, onClose }: ChangeOrderReviewProps) {
         }
       } catch (err) {
         console.warn("Could not sync CO to costingPhases:", err);
+      }
+
+      // Update job's currentContractValue
+      try {
+        const jobId = co.jobId as string | undefined;
+        if (jobId) {
+          const jobRef = doc(db, "Jobs", jobId);
+          const jobSnap = await getDoc(jobRef);
+          if (jobSnap.exists()) {
+            const jobData = jobSnap.data();
+            if (jobData.currentContractValue != null) {
+              await updateDoc(jobRef, {
+                currentContractValue: increment(totals.amountApproved),
+                updatedAt: serverTimestamp(),
+              });
+            } else {
+              const base = Number(jobData.originalContractValue) || 0;
+              await updateDoc(jobRef, {
+                currentContractValue: base + totals.amountApproved,
+                updatedAt: serverTimestamp(),
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not update job currentContractValue:", err);
       }
 
       onClose?.();
