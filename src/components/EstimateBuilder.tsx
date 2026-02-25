@@ -510,7 +510,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
         updatedAt: serverTimestamp(),
       });
       if (jobId) {
-        await updateDoc(doc(db, "jobs", jobId), {
+        await updateDoc(doc(db, "Jobs", jobId), {
           projectPhase: "Opportunity",
           updatedAt: serverTimestamp(),
         });
