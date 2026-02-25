@@ -29,3 +29,5 @@ Per `package.json` scripts:
 - **Functions use Node 20 engine**: The `functions/` sub-project specifies `"engines": {"node": "20"}`. npm warns about engine mismatch on Node 22 but builds fine.
 - **`.env.local` already populated**: Firebase credentials and Anthropic API key are pre-configured in `.env.local`. No env file setup needed.
 - **Firestore rules are wide-open**: `firestore.rules` currently allows all reads/writes — this is the dev configuration.
+- **Company creation bug**: `CompanyForm.tsx` converts empty optional fields to `undefined` via `value.trim() || undefined`, but Firestore `addDoc` rejects `undefined` values. Creating a company requires filling in ALL fields (including tags) or the save will fail with a Firebase error. The `updateDoc` path handles this correctly with `deleteField()`, but `addDoc` does not filter out `undefined` values.
+- **Login credentials**: Use the `TEST_LOGIN_EMAIL` and `TEST_LOGIN_PASSWORD` environment secrets for Firebase email/password auth.
