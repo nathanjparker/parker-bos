@@ -18,13 +18,11 @@ export interface ConstructionEstimatePhase {
 export interface ConstructionFixture {
   id: string;
   estimateId: string;
-  category: string;       // "Fixture", "Water Heater", etc.
-  manufacturer?: string;
-  model?: string;
-  description: string;
+  costCode: string;        // mapped from materialGroup via FASTPIPE_COST_CODE_MAP
+  materialGroup: string;   // original FastPipe code, e.g. "02-EQG"
   quantity: number;
-  unitCost?: number;
-  tag?: string;           // future: submittal reference
+  size: string | null;     // null when FastPipe exports "<None>"
+  description: string;
   sortOrder: number;
 }
 
@@ -37,44 +35,47 @@ export function calcConstructionRollup(phases: Pick<ConstructionEstimatePhase, "
   };
 }
 
-/** Parsed row from pasted fixture TSV (e.g. from Excel/Sheets). */
-export interface ParsedFixtureRow {
-  category: string;
-  manufacturer: string;
-  model: string;
-  description: string;
+/** Material Group → cost code mapping for FastPipe's 4-column TSV export. */
+export const FASTPIPE_COST_CODE_MAP: Record<string, string> = {
+  "01-FXT": "TRM",
+  "02-EQG": "GW",
+  "02-EQR": "RI",
+  "02-EQT": "TRM",
+  "03-FXG": "GW",
+  "03-FXR": "RI",
+  "03-FXT": "TRM",
+  "06-WH":  "WH",
+  "07-GAS": "GAS",
+  "08-HVC": "HVC",
+  "09-M01": "MISC01",
+  "09-M02": "MISC01",
+  "demo":   "MISC01",
+};
+
+/** A single row parsed from FastPipe's 4-column TSV export. */
+export interface ParsedFastPipeRow {
+  materialGroup: string;   // original code, e.g. "02-EQG"
+  costCode: string;        // mapped via FASTPIPE_COST_CODE_MAP
   quantity: number;
-  unitCost: number;
-  tag: string;
+  size: string | null;     // null when FastPipe exports "<None>"
+  description: string;
 }
 
-const FIXTURE_HEADERS = ["category", "manufacturer", "model", "description", "quantity", "unitcost", "unit cost", "qty", "tag"];
-
-function parseMoney(s: string): number {
-  return parseFloat(String(s).replace(/[$,]/g, "")) || 0;
-}
-
-/** Parse tab- or comma-separated fixture data. First row may be a header. */
-export function parseFixtureTSV(text: string): ParsedFixtureRow[] {
+/** Parse FastPipe's 4-column TSV: MaterialGroup | Qty | Size | Description */
+export function parseFastPipeTSV(text: string): ParsedFastPipeRow[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-  if (lines.length === 0) return [];
-  const rows: ParsedFixtureRow[] = [];
-  let start = 0;
-  const firstCells = lines[0].split(/\t|,/).map((c) => c.trim().toLowerCase());
-  const looksLikeHeader = firstCells.length >= 2 && FIXTURE_HEADERS.some((h) => firstCells[0].includes(h) || firstCells.some((c) => c === h));
-  if (looksLikeHeader) start = 1;
-  for (let i = start; i < lines.length; i++) {
-    const cells = lines[i].split(/\t|,/).map((c) => c.trim());
-    if (cells.length < 2) continue;
-    const category = cells[0] ?? "";
-    const manufacturer = cells[1] ?? "";
-    const model = cells[2] ?? "";
-    const description = cells[3] ?? "";
-    const quantity = Math.max(0, parseInt(cells[4] ?? "1", 10) || 1);
-    const unitCost = parseMoney(cells[5] ?? "0");
-    const tag = cells[6] ?? "";
-    if (!category && !description && !manufacturer) continue;
-    rows.push({ category, manufacturer, model, description, quantity, unitCost, tag });
+  const rows: ParsedFastPipeRow[] = [];
+  for (const line of lines) {
+    const cells = line.split("\t");
+    if (cells.length < 4) continue;
+    const materialGroup = cells[0].trim();
+    const quantity = Math.max(1, parseInt(cells[1].trim(), 10) || 1);
+    const rawSize = cells[2].trim();
+    const size = rawSize === "" || rawSize.toLowerCase() === "<none>" ? null : rawSize;
+    const description = cells.slice(3).join("\t").trim();
+    if (!materialGroup && !description) continue;
+    const costCode = FASTPIPE_COST_CODE_MAP[materialGroup] ?? "MISC01";
+    rows.push({ materialGroup, costCode, quantity, size, description });
   }
   return rows;
 }

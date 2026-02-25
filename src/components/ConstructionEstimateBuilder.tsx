@@ -21,9 +21,10 @@ import type { ServiceEstimate } from "@/types/estimates";
 import type { Job } from "@/types/jobs";
 import {
   calcConstructionRollup,
-  parseFixtureTSV,
+  parseFastPipeTSV,
   type ConstructionEstimatePhase,
   type ConstructionFixture,
+  type ParsedFastPipeRow,
 } from "@/types/constructionEstimate";
 import { parseBudgetTSV } from "@/types/costing";
 
@@ -31,8 +32,15 @@ interface Props {
   estimateId?: string;
 }
 
-interface LocalFixture extends Omit<ConstructionFixture, "id"> {
+interface LocalFixture {
   id?: string;
+  estimateId: string;
+  costCode: string;
+  materialGroup: string;
+  quantity: number;
+  size: string | null;
+  description: string;
+  sortOrder: number;
 }
 
 function fmt(n: number): string {
@@ -69,12 +77,10 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
   // Phases (read-only after import)
   const [phases, setPhases] = useState<(ConstructionEstimatePhase & { id: string })[]>([]);
 
-  // Fixtures (inline editable)
+  // Fixtures
   const [fixtures, setFixtures] = useState<LocalFixture[]>([]);
-  const [editingFixtureId, setEditingFixtureId] = useState<string | null>(null);
-  const [editingFixtureField, setEditingFixtureField] = useState<string | null>(null);
-  const [editingFixtureValue, setEditingFixtureValue] = useState<string>("");
-  const pendingFixtureRef = useRef<string | null>(null);
+  // Preview rows parsed from FastPipe paste (editable before confirming)
+  const [fixturePreviewRows, setFixturePreviewRows] = useState<ParsedFastPipeRow[]>([]);
 
   // Cost codes for label map
   const [costCodes, setCostCodes] = useState<CostCode[]>([]);
@@ -167,17 +173,6 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
     load();
   }, [estimateId]);
 
-  // Auto-start editing on newly added fixture row
-  useEffect(() => {
-    if (pendingFixtureRef.current && fixtures.some((f) => f.id === pendingFixtureRef.current)) {
-      const fid = pendingFixtureRef.current;
-      pendingFixtureRef.current = null;
-      setEditingFixtureId(fid);
-      setEditingFixtureField("description");
-      setEditingFixtureValue("");
-    }
-  }, [fixtures]);
-
   const rollup = useMemo(() => calcConstructionRollup(phases), [phases]);
 
   const jobSuggestions = useMemo(() => {
@@ -196,10 +191,23 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
     }
   }, [importText, costCodes]);
 
-  const fixtureImportPreview = useMemo(
-    () => (fixtureImportText.trim() ? parseFixtureTSV(fixtureImportText) : []),
-    [fixtureImportText]
-  );
+  // Auto-parse FastPipe paste into preview rows
+  useEffect(() => {
+    setFixturePreviewRows(fixtureImportText.trim() ? parseFastPipeTSV(fixtureImportText) : []);
+  }, [fixtureImportText]);
+
+  // Group confirmed fixtures by cost code (sorted by sortOrder within each group)
+  const fixturesByCode = useMemo(() => {
+    const groups: Record<string, LocalFixture[]> = {};
+    for (const f of fixtures) {
+      if (!groups[f.costCode]) groups[f.costCode] = [];
+      groups[f.costCode].push(f);
+    }
+    for (const g of Object.values(groups)) g.sort((a, b) => a.sortOrder - b.sortOrder);
+    return groups;
+  }, [fixtures]);
+
+  const fixtureCostCodes = useMemo(() => Object.keys(fixturesByCode).sort(), [fixturesByCode]);
 
   // Create estimate doc lazily on first action
   async function ensureEstimateDoc(): Promise<string> {
@@ -380,96 +388,53 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
   }
 
   // Fixtures CRUD
-  async function handleAddFixture() {
-    const eid = await ensureEstimateDoc();
-    const nextOrder = fixtures.length > 0 ? Math.max(...fixtures.map((f) => f.sortOrder)) + 1 : 1;
-    const ref = await addDoc(collection(db, "constructionFixtures"), {
-      estimateId: eid,
-      category: "",
-      manufacturer: "",
-      model: "",
-      description: "",
-      quantity: 1,
-      unitCost: 0,
-      tag: "",
-      sortOrder: nextOrder,
-    });
-    const newFixture: LocalFixture = {
-      id: ref.id,
-      estimateId: eid,
-      category: "",
-      manufacturer: "",
-      model: "",
-      description: "",
-      quantity: 1,
-      unitCost: 0,
-      tag: "",
-      sortOrder: nextOrder,
-    };
-    pendingFixtureRef.current = ref.id;
-    setFixtures((prev) => [...prev, newFixture]);
-  }
-
-  function startEditFixture(id: string, field: string, currentValue: string | number) {
-    setEditingFixtureId(id);
-    setEditingFixtureField(field);
-    setEditingFixtureValue(String(currentValue));
-  }
-
-  async function saveFixtureField(id: string, field: string, value: string) {
-    const trimmed = value.trim();
-    const numFields = ["quantity", "unitCost", "sortOrder"];
-    const parsed = numFields.includes(field) ? Number(trimmed) || 0 : trimmed;
-    setFixtures((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, [field]: parsed } : f))
-    );
-    if (id) {
-      await updateDoc(doc(db, "constructionFixtures", id), { [field]: parsed });
-    }
-  }
-
   async function handleDeleteFixture(id: string | undefined) {
     if (!id) return;
     setFixtures((prev) => prev.filter((f) => f.id !== id));
     await deleteDoc(doc(db, "constructionFixtures", id));
   }
 
-  async function handleImportFixtures() {
-    if (fixtureImportPreview.length === 0) return;
+  // Import FastPipe fixtures — replaces all existing fixtures for this estimate
+  async function handleImportFastPipeFixtures() {
+    if (fixturePreviewRows.length === 0) return;
     setImportingFixtures(true);
     setError("");
     try {
       const eid = await ensureEstimateDoc();
-      const baseOrder = fixtures.length > 0 ? Math.max(...fixtures.map((f) => f.sortOrder)) + 1 : 1;
+
+      // Delete all existing fixtures for this estimate
+      const existing = await getDocs(
+        query(collection(db, "constructionFixtures"), where("estimateId", "==", eid))
+      );
+      await Promise.all(existing.docs.map((d) => deleteDoc(d.ref)));
+
+      // Write new fixtures
       const newFixtures: LocalFixture[] = [];
-      for (let i = 0; i < fixtureImportPreview.length; i++) {
-        const row = fixtureImportPreview[i];
-        const sortOrder = baseOrder + i;
+      for (let i = 0; i < fixturePreviewRows.length; i++) {
+        const row = fixturePreviewRows[i];
+        const sortOrder = i + 1;
         const ref = await addDoc(collection(db, "constructionFixtures"), {
           estimateId: eid,
-          category: row.category,
-          manufacturer: row.manufacturer,
-          model: row.model,
-          description: row.description,
+          costCode: row.costCode,
+          materialGroup: row.materialGroup,
           quantity: row.quantity,
-          unitCost: row.unitCost,
-          tag: row.tag,
+          size: row.size,
+          description: row.description,
           sortOrder,
         });
         newFixtures.push({
           id: ref.id,
           estimateId: eid,
-          category: row.category,
-          manufacturer: row.manufacturer,
-          model: row.model,
-          description: row.description,
+          costCode: row.costCode,
+          materialGroup: row.materialGroup,
           quantity: row.quantity,
-          unitCost: row.unitCost,
-          tag: row.tag,
+          size: row.size,
+          description: row.description,
           sortOrder,
         });
       }
-      setFixtures((prev) => [...prev, ...newFixtures].sort((a, b) => a.sortOrder - b.sortOrder));
+      setFixtures(newFixtures);
+      setFixturePreviewRows([]);
       setFixtureImportText("");
       setShowFixtureImport(false);
     } catch (err) {
@@ -534,24 +499,23 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
         }
         if (fixtures.length > 0) {
           await Promise.all(
-            fixtures.map((f) => {
-              const contractValue = (f.quantity ?? 1) * (f.unitCost ?? 0);
-              return addDoc(collection(db, "costingPhases"), {
+            fixtures.map((f) =>
+              addDoc(collection(db, "costingPhases"), {
                 jobId,
                 jobName,
-                costCode: "FIX",
-                label: f.description || f.category || "Fixture",
+                costCode: f.costCode,
+                label: f.description || "Fixture",
                 subgrouping: "FIXTURE",
-                estMaterialCost: contractValue,
+                estMaterialCost: 0,
                 estLaborCost: 0,
                 estHours: 0,
                 mMarkup: 0,
                 lMarkup: 0,
-                contractValue,
+                contractValue: 0,
                 importedAt: serverTimestamp(),
                 updatedAt: serverTimestamp(),
-              });
-            })
+              })
+            )
           );
         }
         await updateDoc(doc(db, "Jobs", jobId), {
@@ -960,172 +924,158 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
           <div>
             <h2 className="text-sm font-semibold text-gray-900">Fixtures & Equipment</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              {fixtures.length > 0 ? "Click any cell to edit inline" : "Add items or paste from Excel/Sheets (tab- or comma-separated)"}
+              {fixtures.length > 0
+                ? `${fixtures.length} fixture${fixtures.length === 1 ? "" : "s"} imported`
+                : "Paste FastPipe TSV to import fixture schedule"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowFixtureImport((v) => !v)}
-              className="flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200"
-            >
-              {showFixtureImport ? "Cancel" : "Paste from spreadsheet"}
-            </button>
-            <button
-              type="button"
-              onClick={handleAddFixture}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-              </svg>
-              Add Item
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowFixtureImport((v) => !v)}
+            className="flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200"
+          >
+            {fixtures.length > 0 ? (showFixtureImport ? "Cancel" : "Re-import") : (showFixtureImport ? "Cancel" : "Paste FastPipe")}
+          </button>
         </div>
 
+        {/* FastPipe paste zone */}
         {showFixtureImport && (
           <div className="p-5 space-y-3 border-b border-gray-100">
-            <textarea
-              value={fixtureImportText}
-              onChange={(e) => setFixtureImportText(e.target.value)}
-              rows={5}
-              placeholder="Paste tab- or comma-separated data. Columns: Category, Manufacturer, Model, Description, Qty, Unit Cost, Tag (first row may be a header)"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs font-mono text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            {fixtureImportPreview.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 mb-1.5">
+                Copy rows from FastPipe and paste below. Expected columns (tab-separated):{" "}
+                <span className="font-mono">Material Group · Qty · Size · Description</span>
+              </p>
+              <textarea
+                value={fixtureImportText}
+                onChange={(e) => setFixtureImportText(e.target.value)}
+                rows={6}
+                placeholder={"01-FXT\t1\t½\tDW-BAR Dishwasher in Bar\n02-EQG\t6\t2\tFD Floor Drain\n03-FXT\t2\t<None>\tWC-1 Toilet - Floor Mt Tank Type"}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs font-mono text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {fixturePreviewRows.length > 0 && (
               <>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Preview — {fixtureImportPreview.length} item{fixtureImportPreview.length === 1 ? "" : "s"}
+                  Preview — {fixturePreviewRows.length} fixture{fixturePreviewRows.length === 1 ? "" : "s"}
+                  {fixtures.length > 0 && (
+                    <span className="ml-2 text-amber-600 normal-case font-normal">
+                      (will replace {fixtures.length} existing fixture{fixtures.length === 1 ? "" : "s"})
+                    </span>
+                  )}
                 </p>
-                <div className="overflow-x-auto rounded-lg border border-gray-200 max-h-48">
+                <div className="overflow-x-auto rounded-lg border border-gray-200 max-h-64">
                   <table className="min-w-full divide-y divide-gray-100 text-xs">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
-                        <th className="px-2 py-1.5 text-left font-semibold text-gray-500">Category</th>
-                        <th className="px-2 py-1.5 text-left font-semibold text-gray-500">Mfr</th>
-                        <th className="px-2 py-1.5 text-left font-semibold text-gray-500">Model</th>
-                        <th className="px-2 py-1.5 text-left font-semibold text-gray-500">Description</th>
-                        <th className="px-2 py-1.5 text-right font-semibold text-gray-500">Qty</th>
-                        <th className="px-2 py-1.5 text-right font-semibold text-gray-500">Unit Cost</th>
-                        <th className="px-2 py-1.5 text-left font-semibold text-gray-500">Tag</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-500">Cost Code</th>
+                        <th className="px-3 py-2 text-right font-semibold text-gray-500">Qty</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-500">Size</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-500">Description</th>
+                        <th className="w-8" />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
-                      {fixtureImportPreview.slice(0, 20).map((row, i) => (
+                      {fixturePreviewRows.map((row, i) => (
                         <tr key={i}>
-                          <td className="px-2 py-1 text-gray-700">{row.category}</td>
-                          <td className="px-2 py-1 text-gray-700">{row.manufacturer}</td>
-                          <td className="px-2 py-1 text-gray-700">{row.model}</td>
-                          <td className="px-2 py-1 text-gray-700">{row.description}</td>
-                          <td className="px-2 py-1 text-right tabular-nums text-gray-700">{row.quantity}</td>
-                          <td className="px-2 py-1 text-right tabular-nums text-gray-700">{fmt(row.unitCost)}</td>
-                          <td className="px-2 py-1 text-gray-700">{row.tag}</td>
+                          <td className="px-3 py-1.5">
+                            <span className="font-mono font-semibold text-gray-800">{row.costCode}</span>
+                            <span className="ml-1.5 text-gray-400">{row.materialGroup}</span>
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums text-gray-700">{row.quantity}</td>
+                          <td className="px-3 py-1.5 text-gray-600">{row.size ?? "—"}</td>
+                          <td className="px-3 py-1.5 text-gray-800">{row.description}</td>
+                          <td className="px-2 py-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setFixturePreviewRows((prev) => prev.filter((_, j) => j !== i))}
+                              className="rounded p-0.5 text-gray-300 hover:text-red-500"
+                              title="Remove row"
+                            >
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                {fixtureImportPreview.length > 20 && (
-                  <p className="text-xs text-gray-500">… and {fixtureImportPreview.length - 20} more</p>
-                )}
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    onClick={handleImportFixtures}
+                    onClick={handleImportFastPipeFixtures}
                     disabled={importingFixtures}
                     className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {importingFixtures ? "Importing…" : `Import ${fixtureImportPreview.length} Item${fixtureImportPreview.length === 1 ? "" : "s"}`}
+                    {importingFixtures ? "Importing…" : `Import ${fixturePreviewRows.length} Fixture${fixturePreviewRows.length === 1 ? "" : "s"}`}
                   </button>
                 </div>
               </>
             )}
-            {fixtureImportText.trim() && fixtureImportPreview.length === 0 && (
-              <p className="text-xs text-amber-600">No rows parsed. Use tab- or comma-separated columns: Category, Manufacturer, Model, Description, Qty, Unit Cost, Tag</p>
+
+            {fixtureImportText.trim() && fixturePreviewRows.length === 0 && (
+              <p className="text-xs text-amber-600">
+                No valid rows found. Expected 4 tab-separated columns: Material Group, Qty, Size, Description.
+              </p>
             )}
           </div>
         )}
 
-        {fixtures.length === 0 && !showFixtureImport ? (
-          <div className="py-10 text-center text-sm text-gray-400">
-            No fixtures yet. Click &ldquo;Add Item&rdquo; to start the equipment list.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100 text-sm">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 w-28">Category</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 w-28">Mfr</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 w-28">Model</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Description</th>
-                  <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 w-16">Qty</th>
-                  <th className="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 w-24">Unit Cost</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Tag</th>
-                  <th className="w-8" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {fixtures.map((fixture) => {
-                  const fid = fixture.id!;
-                  function cell(field: string, value: string | number, align: "left" | "right" = "left") {
-                    const isEditing = editingFixtureId === fid && editingFixtureField === field;
-                    if (isEditing) {
-                      return (
-                        <input
-                          type={["quantity", "unitCost"].includes(field) ? "number" : "text"}
-                          min={0}
-                          value={editingFixtureValue}
-                          onChange={(e) => setEditingFixtureValue(e.target.value)}
-                          onBlur={() => {
-                            saveFixtureField(fid, field, editingFixtureValue);
-                            setEditingFixtureId(null);
-                            setEditingFixtureField(null);
-                          }}
-                          autoFocus
-                          className={`w-full rounded border border-blue-400 bg-white px-1.5 py-1 text-sm text-gray-900 focus:outline-none ${align === "right" ? "text-right tabular-nums" : ""}`}
-                        />
-                      );
-                    }
-                    return (
-                      <span
-                        onClick={() => startEditFixture(fid, field, value)}
-                        className={`block cursor-text rounded px-1.5 py-1 text-sm hover:bg-blue-50 min-h-[28px] ${!value ? "text-gray-300 italic" : "text-gray-800"} ${align === "right" ? "text-right tabular-nums" : ""}`}
-                      >
-                        {value
-                          ? (field === "unitCost" ? fmt(Number(value)) : value)
-                          : "—"}
-                      </span>
-                    );
-                  }
-
-                  return (
-                    <tr key={fid} className="group">
-                      <td className="px-2 py-1">{cell("category", fixture.category ?? "")}</td>
-                      <td className="px-2 py-1">{cell("manufacturer", fixture.manufacturer ?? "")}</td>
-                      <td className="px-2 py-1">{cell("model", fixture.model ?? "")}</td>
-                      <td className="px-2 py-1">{cell("description", fixture.description)}</td>
-                      <td className="px-2 py-1">{cell("quantity", fixture.quantity, "right")}</td>
-                      <td className="px-2 py-1">{cell("unitCost", fixture.unitCost ?? 0, "right")}</td>
-                      <td className="px-2 py-1">{cell("tag", fixture.tag ?? "")}</td>
-                      <td className="px-2 py-1">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteFixture(fixture.id)}
-                          className="rounded p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Remove"
-                        >
-                          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                      </td>
+        {/* Confirmed fixture display: grouped by cost code */}
+        {fixtures.length > 0 && !showFixtureImport && (
+          <div className="divide-y divide-gray-100">
+            {fixtureCostCodes.map((code) => (
+              <div key={code}>
+                <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 border-b border-gray-100">
+                  <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-mono font-semibold text-slate-700">
+                    {code}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {fixturesByCode[code].length} item{fixturesByCode[code].length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <table className="min-w-full divide-y divide-gray-100 text-sm">
+                  <thead>
+                    <tr className="bg-white">
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 w-14">Qty</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 w-16">Size</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Description</th>
+                      <th className="w-8" />
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {fixturesByCode[code].map((f) => (
+                      <tr key={f.id} className="group">
+                        <td className="px-4 py-2.5 text-sm tabular-nums text-gray-700">{f.quantity}</td>
+                        <td className="px-4 py-2.5 text-sm text-gray-500">{f.size ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-sm text-gray-800">{f.description}</td>
+                        <td className="px-2 py-2.5">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFixture(f.id)}
+                            className="rounded p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove"
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {fixtures.length === 0 && !showFixtureImport && (
+          <div className="py-10 text-center text-sm text-gray-400">
+            No fixtures yet. Click &ldquo;Paste FastPipe&rdquo; to import the fixture schedule.
           </div>
         )}
       </div>
