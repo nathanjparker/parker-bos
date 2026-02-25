@@ -85,6 +85,10 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
   // Cost codes for label map
   const [costCodes, setCostCodes] = useState<CostCode[]>([]);
 
+  // Exclusion library + checked state
+  const [exclusionLibrary, setExclusionLibrary] = useState<Array<{ id: string; text: string }>>([]);
+  const [selectedExclusions, setSelectedExclusions] = useState<Set<string>>(new Set());
+
   // Job typeahead
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [jobSearch, setJobSearch] = useState("");
@@ -126,6 +130,22 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
       .catch(console.error);
   }, []);
 
+  // Load active exclusion library; default all checked for new estimates
+  useEffect(() => {
+    getDocs(
+      query(collection(db, "exclusionLibrary"), where("active", "==", true), orderBy("sortOrder", "asc"))
+    )
+      .then((snap) => {
+        const items = snap.docs.map((d) => {
+          const data = d.data() as { text: string };
+          return { id: d.id, text: data.text };
+        });
+        setExclusionLibrary(items);
+        if (!estimateId) setSelectedExclusions(new Set(items.map((ex) => ex.text)));
+      })
+      .catch(console.error);
+  }, [estimateId]);
+
   // Load existing estimate + phases + fixtures
   useEffect(() => {
     if (!estimateId) return;
@@ -153,6 +173,9 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
         setScopeOfWork(e.scopeOfWork ?? "");
         setExclusions(e.exclusions ?? "");
         setClarifications(e.clarifications ?? "");
+        const rawData = estSnap.data() as Record<string, unknown>;
+        const saved = rawData.selectedExclusions;
+        if (Array.isArray(saved)) setSelectedExclusions(new Set(saved as string[]));
 
         const phaseDocs = phasesSnap.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<ConstructionEstimatePhase, "id">) }))
@@ -228,6 +251,7 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
       scopeOfWork: "",
       exclusions: "",
       clarifications: "",
+      selectedExclusions: Array.from(selectedExclusions),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -264,6 +288,26 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
     } catch (err) {
       console.error("Failed to save header:", err);
     }
+  }
+
+  async function saveSelectedExclusions(next: Set<string>) {
+    const eid = resolvedIdRef.current;
+    if (!eid) return;
+    try {
+      await updateDoc(doc(db, "estimates", eid), {
+        selectedExclusions: Array.from(next),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error("Failed to save exclusions:", err);
+    }
+  }
+
+  function toggleExclusion(text: string, checked: boolean) {
+    const next = new Set(selectedExclusions);
+    if (checked) next.add(text); else next.delete(text);
+    setSelectedExclusions(next);
+    saveSelectedExclusions(next);
   }
 
   async function saveNarrative(field: "scopeOfWork" | "exclusions" | "clarifications", value: string) {
@@ -864,60 +908,6 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
         </div>
       )}
 
-      {/* Narrative sections */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm divide-y divide-gray-100">
-        {/* Scope of Work */}
-        <div className="p-5">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">Scope of Work</label>
-          <textarea
-            value={scopeOfWork}
-            onChange={(e) => {
-              setScopeOfWork(e.target.value);
-              setDirty(true);
-              dirtyRef.current = true;
-            }}
-            onBlur={() => saveNarrative("scopeOfWork", scopeOfWork)}
-            rows={6}
-            placeholder="Describe the complete scope of work for this project…"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
-          />
-        </div>
-
-        {/* Exclusions */}
-        <div className="p-5">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">Exclusions</label>
-          <textarea
-            value={exclusions}
-            onChange={(e) => {
-              setExclusions(e.target.value);
-              setDirty(true);
-              dirtyRef.current = true;
-            }}
-            onBlur={() => saveNarrative("exclusions", exclusions)}
-            rows={4}
-            placeholder="List items specifically excluded from this estimate…"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
-          />
-        </div>
-
-        {/* Clarifications */}
-        <div className="p-5">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">Clarifications / Assumptions</label>
-          <textarea
-            value={clarifications}
-            onChange={(e) => {
-              setClarifications(e.target.value);
-              setDirty(true);
-              dirtyRef.current = true;
-            }}
-            onBlur={() => saveNarrative("clarifications", clarifications)}
-            rows={4}
-            placeholder="List any clarifications or assumptions made for this estimate…"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
-          />
-        </div>
-      </div>
-
       {/* Fixtures & Equipment */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
@@ -1078,6 +1068,107 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
             No fixtures yet. Click &ldquo;Paste FastPipe&rdquo; to import the fixture schedule.
           </div>
         )}
+      </div>
+
+      {/* Exclusions checklist */}
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Exclusions</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Uncheck items that do not apply to this job.</p>
+          </div>
+          <a
+            href="/settings/exclusions"
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-blue-600 hover:underline shrink-0"
+          >
+            Manage exclusions list →
+          </a>
+        </div>
+        <div className="p-5">
+          {exclusionLibrary.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              No exclusions in library.{" "}
+              <a
+                href="/settings/exclusions"
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                Add some →
+              </a>
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2.5">
+              {exclusionLibrary.map((ex) => (
+                <label key={ex.id} className="flex items-start gap-2.5 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={selectedExclusions.has(ex.text)}
+                    onChange={(e) => toggleExclusion(ex.text, e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+                  />
+                  <span className="text-sm text-gray-700 group-hover:text-gray-900 leading-snug">{ex.text}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Narrative sections */}
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm divide-y divide-gray-100">
+        {/* Scope of Work */}
+        <div className="p-5">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">Scope of Work</label>
+          <textarea
+            value={scopeOfWork}
+            onChange={(e) => {
+              setScopeOfWork(e.target.value);
+              setDirty(true);
+              dirtyRef.current = true;
+            }}
+            onBlur={() => saveNarrative("scopeOfWork", scopeOfWork)}
+            rows={6}
+            placeholder="Describe the complete scope of work for this project…"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
+          />
+        </div>
+
+        {/* Exclusions (freeform notes) */}
+        <div className="p-5">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">Exclusion Notes</label>
+          <textarea
+            value={exclusions}
+            onChange={(e) => {
+              setExclusions(e.target.value);
+              setDirty(true);
+              dirtyRef.current = true;
+            }}
+            onBlur={() => saveNarrative("exclusions", exclusions)}
+            rows={3}
+            placeholder="Any additional exclusion notes not covered by the checklist above…"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
+          />
+        </div>
+
+        {/* Clarifications */}
+        <div className="p-5">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">Clarifications / Assumptions</label>
+          <textarea
+            value={clarifications}
+            onChange={(e) => {
+              setClarifications(e.target.value);
+              setDirty(true);
+              dirtyRef.current = true;
+            }}
+            onBlur={() => saveNarrative("clarifications", clarifications)}
+            rows={4}
+            placeholder="List any clarifications or assumptions made for this estimate…"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-800 placeholder:text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
+          />
+        </div>
       </div>
 
       {/* Error */}

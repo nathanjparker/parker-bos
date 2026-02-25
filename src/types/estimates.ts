@@ -19,6 +19,7 @@ export interface ServiceEstimate {
   scopeOfWork?: string;
   exclusions?: string;
   clarifications?: string;
+  selectedExclusions?: string[];   // texts of checked library exclusions
   // Stored rollup totals (recalculated on every line save)
   totalHours: number;
   totalLaborBilling: number;   // sum(hours) × laborRate
