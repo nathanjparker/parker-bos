@@ -97,6 +97,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [copiedQBO, setCopiedQBO] = useState(false);
+  const [newJobName, setNewJobName] = useState("");
 
   // Load cost codes
   useEffect(() => {
@@ -412,14 +413,18 @@ export default function EstimateBuilder({ estimateId }: Props) {
     setError("");
     try {
       const codeMap = new Map(costCodes.map((c) => [c.code, c.label]));
+      const contractValue = rollup.totalContractValue;
+      const effectiveName = newJobName.trim() || jobName || "Untitled Estimate";
 
       // If no job linked, create one so this award is tracked in project management
       let effectiveJobId = jobId;
-      let effectiveJobName = jobName || "Untitled Estimate";
       if (!effectiveJobId) {
         const jobPayload = {
-          jobName: effectiveJobName,
-          projectPhase: "Install" as const,
+          jobName: effectiveName,
+          projectPhase: "Awarded" as const,
+          estimateId: resolvedId,
+          originalContractValue: contractValue,
+          currentContractValue: contractValue,
           gcId: gcId ?? null,
           gcName: gcName || null,
           estimatorId: estimatorId ?? null,
@@ -433,14 +438,29 @@ export default function EstimateBuilder({ estimateId }: Props) {
         const jobRef = await addDoc(collection(db, "Jobs"), clean);
         effectiveJobId = jobRef.id;
         setJobId(effectiveJobId);
-        setAllJobs((prev) => [...prev, { id: effectiveJobId!, jobName: effectiveJobName, projectPhase: "Install" } as Job].sort((a, b) => a.jobName.localeCompare(b.jobName)));
+        setJobName(effectiveName);
+        setJobSearch(effectiveName);
+        setAllJobs((prev) =>
+          [...prev, { id: effectiveJobId!, jobName: effectiveName, projectPhase: "Awarded" } as Job]
+            .sort((a, b) => a.jobName.localeCompare(b.jobName))
+        );
       } else {
-        effectiveJobName = jobName || effectiveJobName;
+        // Update existing linked job with all award fields
+        await updateDoc(doc(db, "Jobs", effectiveJobId), {
+          projectPhase: "Awarded",
+          estimateId: resolvedId,
+          originalContractValue: contractValue,
+          currentContractValue: contractValue,
+          gcId: gcId ?? null,
+          gcName: gcName || null,
+          estimatorId: estimatorId ?? null,
+          estimatorName: estimatorName || null,
+          updatedAt: serverTimestamp(),
+        });
       }
 
       // Group lines by costCode and create costing phases (so job appears in PM with budget)
-      const grouped: Record<string, { hours: number; mat: number; label: string }> =
-        {};
+      const grouped: Record<string, { hours: number; mat: number; label: string }> = {};
       for (const line of lines) {
         if (!grouped[line.costCode]) {
           grouped[line.costCode] = {
@@ -456,11 +476,10 @@ export default function EstimateBuilder({ estimateId }: Props) {
       await Promise.all(
         Object.entries(grouped).map(([costCode, vals]) => {
           const estLaborCost = vals.hours * laborRate;
-          const contractValue =
-            estLaborCost + vals.mat * (1 + materialMarkup / 100);
+          const contractVal = estLaborCost + vals.mat * (1 + materialMarkup / 100);
           return addDoc(collection(db, "costingPhases"), {
             jobId: effectiveJobId,
-            jobName: effectiveJobName,
+            jobName: effectiveName,
             costCode,
             label: vals.label,
             subgrouping: "CONTRACTED WORK",
@@ -469,29 +488,22 @@ export default function EstimateBuilder({ estimateId }: Props) {
             estHours: vals.hours,
             mMarkup: materialMarkup,
             lMarkup: 0,
-            contractValue,
+            contractValue: contractVal,
             importedAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
         })
       );
 
-      if (jobId) {
-        await updateDoc(doc(db, "Jobs", effectiveJobId!), {
-          projectPhase: "Install",
-          updatedAt: serverTimestamp(),
-        });
-      }
-
       await updateDoc(doc(db, "estimates", resolvedId), {
         status: "Awarded",
         jobId: effectiveJobId ?? null,
-        jobName: effectiveJobName,
+        jobName: effectiveName,
         updatedAt: serverTimestamp(),
       });
       setStatus("Awarded");
       setConfirmAwarded(false);
-      router.push("/estimates");
+      // Stay on page so the user sees the awarded status and job link
     } catch (err) {
       console.error("Mark awarded failed:", err);
       setError("Failed to mark as awarded. Please try again.");
@@ -1258,12 +1270,21 @@ export default function EstimateBuilder({ estimateId }: Props) {
               </button>
             </div>
           ) : confirmAwarded ? (
-            <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
+            <div className="flex items-center gap-3 flex-wrap rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
               <span className="text-sm font-medium text-green-800">
                 {jobId
                   ? "Award this estimate and create PM phases?"
-                  : "Award this estimate? A new job will be created and tracked in Project Management."}
+                  : "Award this estimate? A new job will be created in Project Management."}
               </span>
+              {!jobId && (
+                <input
+                  type="text"
+                  value={newJobName}
+                  onChange={(e) => setNewJobName(e.target.value)}
+                  placeholder="New job name…"
+                  className="rounded border border-green-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 min-w-56"
+                />
+              )}
               <button
                 type="button"
                 onClick={handleMarkAwarded}
@@ -1315,7 +1336,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
               )}
               <button
                 type="button"
-                onClick={() => setConfirmAwarded(true)}
+                onClick={() => { setNewJobName(jobName); setConfirmAwarded(true); }}
                 disabled={lines.length === 0 || !resolvedId}
                 className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -1345,12 +1366,15 @@ export default function EstimateBuilder({ estimateId }: Props) {
         >
           This estimate is marked as <strong>{status}</strong>.
           {status === "Awarded" && jobId && (
-            <a
-              href={`/jobs/${jobId}`}
-              className="ml-2 underline hover:text-green-900"
-            >
-              View job →
-            </a>
+            <>
+              {" — linked to "}
+              <a href={`/jobs/${jobId}`} className="font-semibold underline hover:text-green-900">
+                {jobName}
+              </a>
+              <a href={`/jobs/${jobId}`} className="ml-3 underline hover:text-green-900">
+                View job →
+              </a>
+            </>
           )}
         </div>
       )}
