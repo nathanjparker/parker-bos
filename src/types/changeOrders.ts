@@ -1,3 +1,5 @@
+import type { Timestamp } from "firebase/firestore";
+
 export type COCategory =
   | "Owner Change"
   | "Field Condition"
@@ -63,10 +65,10 @@ export interface ChangeOrder {
   amountRequested: number;
   amountApproved: number;
   status: COStatus;
-  submittedAt?: any;
-  underReviewAt?: any;
-  approvedAt?: any;
-  rejectedAt?: any;
+  submittedAt?: Timestamp | null;
+  underReviewAt?: Timestamp | null;
+  approvedAt?: Timestamp | null;
+  rejectedAt?: Timestamp | null;
   requestedBy: string;
   requestedByName: string;
   approvedBy?: string;
@@ -78,6 +80,6 @@ export interface ChangeOrder {
   rejectionReason?: string;
   relatedInventoryItems?: string[];
   billedOnInvoiceId?: string;
-  createdAt: any;
-  updatedAt: any;
+  createdAt: Timestamp | null;
+  updatedAt: Timestamp | null;
 }
