@@ -47,6 +47,7 @@ export interface Employee {
   licScissorLift?: string; // YYYY-MM-DD
   expGas?: string;        // YYYY-MM-DD
   licGas?: string;
+  authUid?: string;
   createdAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
   createdBy?: string;

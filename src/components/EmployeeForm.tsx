@@ -31,6 +31,7 @@ type FormValues = {
   licScissorLift: string;
   expGas: string;
   licGas: string;
+  authUid: string;
 };
 
 const EMPTY: FormValues = {
@@ -40,6 +41,7 @@ const EMPTY: FormValues = {
   partnerName: "", partnerPhone: "", partnerEmail: "",
   emergencyContact1: "", emergency1Phone: "", emergencyContact2: "", emergency2Phone: "",
   licenseId: "", licPlumbing: "", expPlumbing: "", licScissorLift: "", expGas: "", licGas: "",
+  authUid: "",
 };
 
 function employeeToForm(e: Employee): FormValues {
@@ -57,6 +59,7 @@ function employeeToForm(e: Employee): FormValues {
     licenseId: e.licenseId ?? "", licPlumbing: e.licPlumbing ?? "",
     expPlumbing: e.expPlumbing ?? "", licScissorLift: e.licScissorLift ?? "",
     expGas: e.expGas ?? "", licGas: e.licGas ?? "",
+    authUid: e.authUid ?? "",
   };
 }
 
@@ -133,6 +136,7 @@ export default function EmployeeForm({
       licScissorLift: s(values.licScissorLift),
       expGas: s(values.expGas),
       licGas: s(values.licGas),
+      authUid: s(values.authUid),
     };
 
     try {
@@ -198,6 +202,12 @@ export default function EmployeeForm({
           <input type="date" className={inputCls} value={values.birthday}
             onChange={(e) => set("birthday", e.target.value)} />
         </Field>
+        <div className="sm:col-span-2">
+          <Field label="Firebase Auth UID">
+            <input type="text" className={inputCls} placeholder="Leave blank if unknown"
+              value={values.authUid} onChange={(e) => set("authUid", e.target.value)} />
+          </Field>
+        </div>
       </Section>
 
       <Section title="Contact Info">
