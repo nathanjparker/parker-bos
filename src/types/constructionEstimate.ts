@@ -101,8 +101,9 @@ export function parseFastPipeTSV(text: string): ParsedFastPipeRow[] {
       const rawPrice = cells[cells.length - 1].trim();
       manufacturer = rawMfr || null;
       model = rawModel || null;
-      const parsed = parseFloat(rawPrice);
-      budgetUnitPrice = isNaN(parsed) ? null : parsed;
+      const cleanPrice = rawPrice.replace(/^\$/, "").replace(/,/g, "");
+      const parsed = parseFloat(cleanPrice);
+      budgetUnitPrice = cleanPrice === "" || cleanPrice === "-" || isNaN(parsed) ? null : parsed;
     } else {
       // Legacy 4-column format
       description = cells.slice(3).join("\t").trim();

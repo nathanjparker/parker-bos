@@ -1062,7 +1062,7 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
             <div>
               <p className="text-xs text-gray-500 mb-1.5">
                 Copy rows from FastPipe and paste below. Expected columns (tab-separated):{" "}
-                <span className="font-mono">Material Group · Qty · Size · Description</span>
+                <span className="font-mono">Material Group · Qty · Size · Description · Manufacturer · Model · Price</span>
               </p>
               <textarea
                 value={fixtureImportText}
