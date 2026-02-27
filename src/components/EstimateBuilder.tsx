@@ -416,9 +416,12 @@ export default function EstimateBuilder({ estimateId }: Props) {
       const contractValue = rollup.totalContractValue;
       const effectiveName = newJobName.trim() || jobName || "Untitled Estimate";
 
+      console.log("[Award] resolvedId:", resolvedId, "| jobId state:", jobId, "| effectiveName:", effectiveName, "| contractValue:", contractValue);
+
       // If no job linked, create one so this award is tracked in project management
       let effectiveJobId = jobId;
       if (!effectiveJobId) {
+        console.log("[Award] No linked job — writing new doc to collection 'Jobs'...");
         const jobPayload = {
           jobName: effectiveName,
           projectPhase: "Awarded" as const,
@@ -435,7 +438,9 @@ export default function EstimateBuilder({ estimateId }: Props) {
         const clean = Object.fromEntries(
           Object.entries(jobPayload).filter(([, v]) => v !== undefined)
         ) as Record<string, unknown>;
+        console.log("[Award] payload keys:", Object.keys(clean), "| payload:", clean);
         const jobRef = await addDoc(collection(db, "Jobs"), clean);
+        console.log("[Award] ✅ Job created — id:", jobRef.id, "in collection 'Jobs'");
         effectiveJobId = jobRef.id;
         setJobId(effectiveJobId);
         setJobName(effectiveName);
@@ -459,6 +464,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
         });
       }
 
+      console.log("[Award] effectiveJobId after create/update:", effectiveJobId);
       // Group lines by costCode and create costing phases (so job appears in PM with budget)
       const grouped: Record<string, { hours: number; mat: number; label: string }> = {};
       for (const line of lines) {
@@ -495,17 +501,19 @@ export default function EstimateBuilder({ estimateId }: Props) {
         })
       );
 
+      console.log("[Award] costingPhases written:", Object.keys(grouped).length, "phases");
       await updateDoc(doc(db, "estimates", resolvedId), {
         status: "Awarded",
         jobId: effectiveJobId ?? null,
         jobName: effectiveName,
         updatedAt: serverTimestamp(),
       });
+      console.log("[Award] ✅ estimate updated to Awarded");
       setStatus("Awarded");
       setConfirmAwarded(false);
       // Stay on page so the user sees the awarded status and job link
     } catch (err) {
-      console.error("Mark awarded failed:", err);
+      console.error("[Award] ❌ FAILED:", err);
       setError("Failed to mark as awarded. Please try again.");
     } finally {
       setSaving(false);

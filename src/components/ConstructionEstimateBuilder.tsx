@@ -111,6 +111,7 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [newJobName, setNewJobName] = useState("");
 
   // Load cost codes (for label map in import)
   useEffect(() => {
@@ -515,67 +516,103 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
     }
   }
 
-  // Mark Awarded — push phases + fixtures to costingPhases, update job
+  // Mark Awarded — create/update job, push phases to costingPhases, copy fixtures to jobFixtures
   async function handleMarkAwarded() {
     if (!resolvedId) return;
     setSaving(true);
     setError("");
     try {
-      if (jobId) {
-        if (phases.length > 0) {
-          await Promise.all(
-            phases.map((phase) =>
-              addDoc(collection(db, "costingPhases"), {
-                jobId,
-                jobName,
-                costCode: phase.costCode,
-                label: phase.label,
-                subgrouping: "CONTRACTED WORK",
-                estMaterialCost: phase.estMaterialCost,
-                estLaborCost: phase.estLaborCost,
-                estHours: phase.estHours,
-                mMarkup: phase.mMarkup,
-                lMarkup: phase.lMarkup,
-                contractValue: phase.contractValue,
-                importedAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-              })
-            )
-          );
-        }
-        if (fixtures.length > 0) {
-          await Promise.all(
-            fixtures.map((f) =>
-              addDoc(collection(db, "costingPhases"), {
-                jobId,
-                jobName,
-                costCode: f.costCode,
-                label: f.description || "Fixture",
-                subgrouping: "FIXTURE",
-                estMaterialCost: 0,
-                estLaborCost: 0,
-                estHours: 0,
-                mMarkup: 0,
-                lMarkup: 0,
-                contractValue: 0,
-                importedAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-              })
-            )
-          );
-        }
-        await updateDoc(doc(db, "Jobs", jobId), {
+      const effectiveName = newJobName.trim() || jobName || "Untitled Construction Estimate";
+
+      // Create new job if none linked; update existing job otherwise
+      let effectiveJobId = jobId;
+      if (!effectiveJobId) {
+        const jobRef = await addDoc(collection(db, "Jobs"), {
+          jobName: effectiveName,
           projectPhase: "Awarded",
+          estimateId: resolvedId,
+          originalContractValue: rollup.totalContractValue,
+          currentContractValue: rollup.totalContractValue,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        effectiveJobId = jobRef.id;
+        setJobId(effectiveJobId);
+        setJobName(effectiveName);
+        setJobSearch(effectiveName);
+        setAllJobs((prev) =>
+          [...prev, { id: effectiveJobId!, jobName: effectiveName, projectPhase: "Awarded" } as Job]
+            .sort((a, b) => a.jobName.localeCompare(b.jobName))
+        );
+      } else {
+        await updateDoc(doc(db, "Jobs", effectiveJobId), {
+          projectPhase: "Awarded",
+          estimateId: resolvedId,
+          originalContractValue: rollup.totalContractValue,
+          currentContractValue: rollup.totalContractValue,
           updatedAt: serverTimestamp(),
         });
       }
+
+      // costingPhases from budget phases ONLY (never from fixtures)
+      if (phases.length > 0) {
+        await Promise.all(
+          phases.map((phase) =>
+            addDoc(collection(db, "costingPhases"), {
+              jobId: effectiveJobId,
+              jobName: effectiveName,
+              costCode: phase.costCode,
+              label: phase.label,
+              subgrouping: "CONTRACTED WORK",
+              estMaterialCost: phase.estMaterialCost,
+              estLaborCost: phase.estLaborCost,
+              estHours: phase.estHours,
+              mMarkup: phase.mMarkup,
+              lMarkup: phase.lMarkup,
+              contractValue: phase.contractValue,
+              importedAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            })
+          )
+        );
+      }
+
+      // Fixtures → jobFixtures (NOT costingPhases)
+      if (fixtures.length > 0) {
+        await Promise.all(
+          fixtures.map((f) =>
+            addDoc(collection(db, "jobFixtures"), {
+              jobId: effectiveJobId,
+              jobName: effectiveName,
+              estimateId: resolvedId,
+              materialGroup: f.materialGroup,
+              costCode: f.costCode,
+              quantity: f.quantity,
+              size: f.size ?? null,
+              description: f.description,
+              sortOrder: f.sortOrder,
+              vendor: null,
+              make: null,
+              model: null,
+              unitPrice: null,
+              status: "Unspecified",
+              specSheetUrl: null,
+              webLink: null,
+              createdAt: serverTimestamp(),
+            })
+          )
+        );
+      }
+
       await updateDoc(doc(db, "estimates", resolvedId), {
         status: "Awarded",
+        jobId: effectiveJobId,
+        jobName: effectiveName,
         updatedAt: serverTimestamp(),
       });
       setStatus("Awarded");
       setConfirmAwarded(false);
-      router.push("/estimates");
+      // Stay on page so user sees the awarded banner + job link
     } catch (err) {
       console.error("Mark awarded failed:", err);
       setError("Failed to mark as awarded. Please try again.");
@@ -1203,12 +1240,21 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
               </button>
             </div>
           ) : confirmAwarded ? (
-            <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
+            <div className="flex items-center gap-3 flex-wrap rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
               <span className="text-sm font-medium text-green-800">
                 {jobId
                   ? "Award this estimate? PM phases will be created from the imported budget."
-                  : "Award this estimate? (No job linked — PM phases won't be created)"}
+                  : "Award this estimate? A new job will be created in Project Management."}
               </span>
+              {!jobId && (
+                <input
+                  type="text"
+                  value={newJobName}
+                  onChange={(e) => setNewJobName(e.target.value)}
+                  placeholder="New job name…"
+                  className="rounded border border-green-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 min-w-56"
+                />
+              )}
               <button
                 type="button"
                 onClick={handleMarkAwarded}
@@ -1258,7 +1304,7 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
               )}
               <button
                 type="button"
-                onClick={() => setConfirmAwarded(true)}
+                onClick={() => { setNewJobName(jobName); setConfirmAwarded(true); }}
                 disabled={phases.length === 0 || !resolvedId}
                 className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -1286,9 +1332,15 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
         }`}>
           This estimate is marked as <strong>{status}</strong>.
           {status === "Awarded" && jobId && (
-            <a href={`/jobs/${jobId}`} className="ml-2 underline hover:text-green-900">
-              View job →
-            </a>
+            <>
+              {" — linked to "}
+              <a href={`/jobs/${jobId}`} className="font-semibold underline hover:text-green-900">
+                {jobName}
+              </a>
+              <a href={`/jobs/${jobId}`} className="ml-3 underline hover:text-green-900">
+                View job →
+              </a>
+            </>
           )}
         </div>
       )}
