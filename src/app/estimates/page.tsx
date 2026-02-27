@@ -185,6 +185,9 @@ export default function EstimatesPage() {
                   >
                     <td className="px-4 py-3 font-medium text-gray-900">
                       {est.jobName || <span className="italic text-gray-400">Unnamed</span>}
+                      {est.bidName && (
+                        <span className="ml-1 text-gray-400 font-normal"> — {est.bidName}</span>
+                      )}
                       {est.jobNumber && (
                         <span className="ml-1.5 text-xs text-gray-400">#{est.jobNumber}</span>
                       )}

@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   orderBy,
   query,
   serverTimestamp,
@@ -97,7 +98,14 @@ export default function EstimateBuilder({ estimateId }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [copiedQBO, setCopiedQBO] = useState(false);
+  const [bidName, setBidName] = useState("");
   const [newJobName, setNewJobName] = useState("");
+
+  // Award confirm: create-new vs link-to-existing flow
+  const [awardLinkMode, setAwardLinkMode] = useState<"new" | "existing">("new");
+  const [awardExistingJobId, setAwardExistingJobId] = useState<string | undefined>();
+  const [awardExistingJobSearch, setAwardExistingJobSearch] = useState("");
+  const [showAwardJobSuggestions, setShowAwardJobSuggestions] = useState(false);
 
   // Load cost codes
   useEffect(() => {
@@ -174,6 +182,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
           setLaborRate(e.laborRate ?? 350);
           setLaborBurden(e.laborBurden ?? 120);
           setMaterialMarkup(e.materialMarkup ?? 40);
+          setBidName(e.bidName ?? "");
         }
         setLines(
           linesSnap.docs.map((d) => {
@@ -224,6 +233,13 @@ export default function EstimateBuilder({ estimateId }: Props) {
     return allCompanies.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 8);
   }, [gcSearch, allCompanies]);
 
+  // Job search for the award confirm "link to existing" path
+  const awardJobSuggestions = useMemo(() => {
+    const q = awardExistingJobSearch.trim().toLowerCase();
+    if (!q) return allJobs.slice(0, 10);
+    return allJobs.filter((j) => j.jobName.toLowerCase().includes(q)).slice(0, 10);
+  }, [awardExistingJobSearch, allJobs]);
+
   // Estimator search filter (people/contacts) — show from first character, match name/title/company
   const estimatorSuggestions = useMemo(() => {
     const q = estimatorSearch.trim().toLowerCase();
@@ -243,6 +259,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
     if (resolvedIdRef.current) return resolvedIdRef.current;
     const ref = await addDoc(collection(db, "estimates"), {
       jobName: jobName || "Untitled Estimate",
+      bidName: bidName || null,
       jobId: jobId ?? null,
       gcId: gcId ?? null,
       gcName: gcName || null,
@@ -281,6 +298,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
       laborBurden,
       materialMarkup,
       jobName: jobName || "Untitled Estimate",
+      bidName: bidName || null,
       jobId: jobId ?? null,
       gcId: gcId ?? null,
       gcName: gcName || null,
@@ -406,7 +424,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
     }
   }
 
-  // Mark Awarded — create job if none linked, then group lines into costingPhases so job is tracked in PM
+  // Mark Awarded — create/link job, group lines into costingPhases tagged with estimateId + bidName
   async function handleMarkAwarded() {
     if (!resolvedId) return;
     setSaving(true);
@@ -415,42 +433,52 @@ export default function EstimateBuilder({ estimateId }: Props) {
       const codeMap = new Map(costCodes.map((c) => [c.code, c.label]));
       const contractValue = rollup.totalContractValue;
       const effectiveName = newJobName.trim() || jobName || "Untitled Estimate";
+      const effectiveBidName = bidName.trim() || "Base Bid";
 
-      console.log("[Award] resolvedId:", resolvedId, "| jobId state:", jobId, "| effectiveName:", effectiveName, "| contractValue:", contractValue);
-
-      // If no job linked, create one so this award is tracked in project management
       let effectiveJobId = jobId;
       if (!effectiveJobId) {
-        console.log("[Award] No linked job — writing new doc to collection 'Jobs'...");
-        const jobPayload = {
-          jobName: effectiveName,
-          projectPhase: "Awarded" as const,
-          estimateId: resolvedId,
-          originalContractValue: contractValue,
-          currentContractValue: contractValue,
-          gcId: gcId ?? null,
-          gcName: gcName || null,
-          estimatorId: estimatorId ?? null,
-          estimatorName: estimatorName || null,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        };
-        const clean = Object.fromEntries(
-          Object.entries(jobPayload).filter(([, v]) => v !== undefined)
-        ) as Record<string, unknown>;
-        console.log("[Award] payload keys:", Object.keys(clean), "| payload:", clean);
-        const jobRef = await addDoc(collection(db, "Jobs"), clean);
-        console.log("[Award] ✅ Job created — id:", jobRef.id, "in collection 'Jobs'");
-        effectiveJobId = jobRef.id;
-        setJobId(effectiveJobId);
-        setJobName(effectiveName);
-        setJobSearch(effectiveName);
-        setAllJobs((prev) =>
-          [...prev, { id: effectiveJobId!, jobName: effectiveName, projectPhase: "Awarded" } as Job]
-            .sort((a, b) => a.jobName.localeCompare(b.jobName))
-        );
+        if (awardLinkMode === "new") {
+          // Create a brand-new job
+          const jobPayload = {
+            jobName: effectiveName,
+            projectPhase: "Awarded" as const,
+            estimateId: resolvedId,
+            originalContractValue: contractValue,
+            currentContractValue: contractValue,
+            gcId: gcId ?? null,
+            gcName: gcName || null,
+            estimatorId: estimatorId ?? null,
+            estimatorName: estimatorName || null,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          };
+          const clean = Object.fromEntries(
+            Object.entries(jobPayload).filter(([, v]) => v !== undefined)
+          ) as Record<string, unknown>;
+          const jobRef = await addDoc(collection(db, "Jobs"), clean);
+          effectiveJobId = jobRef.id;
+          setJobId(effectiveJobId);
+          setJobName(effectiveName);
+          setJobSearch(effectiveName);
+          setAllJobs((prev) =>
+            [...prev, { id: effectiveJobId!, jobName: effectiveName, projectPhase: "Awarded" } as Job]
+              .sort((a, b) => a.jobName.localeCompare(b.jobName))
+          );
+        } else {
+          // Link to existing job — increment currentContractValue only, preserve originalContractValue
+          effectiveJobId = awardExistingJobId!;
+          const linkedJob = allJobs.find((j) => j.id === effectiveJobId);
+          await updateDoc(doc(db, "Jobs", effectiveJobId), {
+            currentContractValue: increment(contractValue),
+            updatedAt: serverTimestamp(),
+          });
+          const displayName = linkedJob?.jobName ?? awardExistingJobSearch;
+          setJobId(effectiveJobId);
+          setJobName(displayName);
+          setJobSearch(displayName);
+        }
       } else {
-        // Update existing linked job with all award fields
+        // Already linked — update job with all award fields
         await updateDoc(doc(db, "Jobs", effectiveJobId), {
           projectPhase: "Awarded",
           estimateId: resolvedId,
@@ -464,8 +492,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
         });
       }
 
-      console.log("[Award] effectiveJobId after create/update:", effectiveJobId);
-      // Group lines by costCode and create costing phases (so job appears in PM with budget)
+      // Group lines by costCode, create costingPhases tagged with estimateId + bidName
       const grouped: Record<string, { hours: number; mat: number; label: string }> = {};
       for (const line of lines) {
         if (!grouped[line.costCode]) {
@@ -489,6 +516,8 @@ export default function EstimateBuilder({ estimateId }: Props) {
             costCode,
             label: vals.label,
             subgrouping: "CONTRACTED WORK",
+            estimateId: resolvedId,
+            bidName: effectiveBidName,
             estMaterialCost: vals.mat,
             estLaborCost,
             estHours: vals.hours,
@@ -501,19 +530,17 @@ export default function EstimateBuilder({ estimateId }: Props) {
         })
       );
 
-      console.log("[Award] costingPhases written:", Object.keys(grouped).length, "phases");
       await updateDoc(doc(db, "estimates", resolvedId), {
         status: "Awarded",
         jobId: effectiveJobId ?? null,
         jobName: effectiveName,
+        bidName: bidName.trim() || null,
         updatedAt: serverTimestamp(),
       });
-      console.log("[Award] ✅ estimate updated to Awarded");
       setStatus("Awarded");
       setConfirmAwarded(false);
-      // Stay on page so the user sees the awarded status and job link
     } catch (err) {
-      console.error("[Award] ❌ FAILED:", err);
+      console.error("Mark awarded failed:", err);
       setError("Failed to mark as awarded. Please try again.");
     } finally {
       setSaving(false);
@@ -595,7 +622,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
           </a>
           <span>/</span>
           <span className="text-gray-900 font-medium">
-            {jobName || "New Estimate"}
+            {jobName ? (bidName ? `${jobName} — ${bidName}` : jobName) : "New Estimate"}
           </span>
         </div>
         {resolvedId && (
@@ -743,6 +770,21 @@ export default function EstimateBuilder({ estimateId }: Props) {
               {status}
             </span>
           </div>
+        </div>
+
+        {/* Bid Name */}
+        <div className="max-w-xs">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
+            Bid Name <span className="normal-case font-normal text-gray-400">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={bidName}
+            onChange={(e) => setBidName(e.target.value)}
+            onBlur={saveHeader}
+            placeholder="Base Bid, Alt Add 1, Alt Add 2…"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
         </div>
 
         {/* Row 2: Contractor + Estimator — equal width, capped */}
@@ -1278,36 +1320,108 @@ export default function EstimateBuilder({ estimateId }: Props) {
               </button>
             </div>
           ) : confirmAwarded ? (
-            <div className="flex items-center gap-3 flex-wrap rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
-              <span className="text-sm font-medium text-green-800">
+            <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 space-y-3">
+              <p className="text-sm font-medium text-green-800">
                 {jobId
-                  ? "Award this estimate and create PM phases?"
-                  : "Award this estimate? A new job will be created in Project Management."}
-              </span>
+                  ? "Award this estimate and create PM budget phases?"
+                  : "Award this estimate? Budget phases will be created in Project Management."}
+              </p>
               {!jobId && (
-                <input
-                  type="text"
-                  value={newJobName}
-                  onChange={(e) => setNewJobName(e.target.value)}
-                  placeholder="New job name…"
-                  className="rounded border border-green-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 min-w-56"
-                />
+                <div className="space-y-2">
+                  {/* Radio: create new vs link existing */}
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-green-900">
+                      <input
+                        type="radio"
+                        name="awardLinkMode"
+                        value="new"
+                        checked={awardLinkMode === "new"}
+                        onChange={() => setAwardLinkMode("new")}
+                        className="accent-green-600"
+                      />
+                      Create a new job
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-sm text-green-900">
+                      <input
+                        type="radio"
+                        name="awardLinkMode"
+                        value="existing"
+                        checked={awardLinkMode === "existing"}
+                        onChange={() => setAwardLinkMode("existing")}
+                        className="accent-green-600"
+                      />
+                      Link to an existing job
+                    </label>
+                  </div>
+                  {awardLinkMode === "new" ? (
+                    <input
+                      type="text"
+                      value={newJobName}
+                      onChange={(e) => setNewJobName(e.target.value)}
+                      placeholder="New job name…"
+                      className="rounded border border-green-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500 min-w-64"
+                    />
+                  ) : (
+                    <div className="relative max-w-sm">
+                      <input
+                        type="text"
+                        value={awardExistingJobSearch}
+                        onChange={(e) => {
+                          setAwardExistingJobSearch(e.target.value);
+                          setShowAwardJobSuggestions(true);
+                          setAwardExistingJobId(undefined);
+                        }}
+                        onFocus={() => setShowAwardJobSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowAwardJobSuggestions(false), 150)}
+                        placeholder="Search for existing job…"
+                        className="w-full rounded border border-green-300 bg-white px-2.5 py-1.5 text-sm text-gray-900 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
+                      />
+                      {showAwardJobSuggestions && awardJobSuggestions.length > 0 && (
+                        <div className="absolute z-30 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg overflow-hidden">
+                          {awardJobSuggestions.map((j) => (
+                            <button
+                              key={j.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setAwardExistingJobId(j.id);
+                                setAwardExistingJobSearch(j.jobName);
+                                setShowAwardJobSuggestions(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex items-center justify-between gap-4 ${awardExistingJobId === j.id ? "bg-blue-50" : ""}`}
+                            >
+                              <span className="font-medium text-gray-900">{j.jobName}</span>
+                              <span className="text-xs text-gray-400 shrink-0">{j.projectPhase}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {awardExistingJobId && (
+                        <p className="mt-1 text-xs text-green-700">
+                          Contract value will be added to this job&apos;s running total.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
-              <button
-                type="button"
-                onClick={handleMarkAwarded}
-                disabled={saving}
-                className="rounded bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                {saving ? "Awarding…" : "Yes, award it"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmAwarded(false)}
-                className="rounded border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleMarkAwarded}
+                  disabled={saving || (!jobId && awardLinkMode === "existing" && !awardExistingJobId)}
+                  className="rounded bg-green-600 px-3 py-1 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  {saving ? "Awarding…" : "Yes, award it"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAwarded(false)}
+                  className="rounded border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           ) : confirmLost ? (
             <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5">
@@ -1344,7 +1458,7 @@ export default function EstimateBuilder({ estimateId }: Props) {
               )}
               <button
                 type="button"
-                onClick={() => { setNewJobName(jobName); setConfirmAwarded(true); }}
+                onClick={() => { setNewJobName(jobName); setAwardLinkMode("new"); setAwardExistingJobId(undefined); setAwardExistingJobSearch(""); setConfirmAwarded(true); }}
                 disabled={lines.length === 0 || !resolvedId}
                 className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >

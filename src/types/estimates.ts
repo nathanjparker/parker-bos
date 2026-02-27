@@ -14,6 +14,7 @@ export interface ServiceEstimate {
   laborRate: number;           // $/hr billing rate  (default 350)
   laborBurden: number;         // $/hr cost to company (default 120)
   materialMarkup: number;      // % markup on materials (default 40)
+  bidName?: string | null;       // e.g. "Base Bid", "Alt Add 1" — null when absent
   notes?: string;
   // Construction-specific narrative (stored as HTML from contentEditable)
   scopeOfWork?: string;

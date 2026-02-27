@@ -580,6 +580,15 @@ export default function ProjectManagementPage() {
             filteredJobs.map((job) => {
               const jobPhases = phasesByJob.get(job.id) ?? [];
               const contracted = jobPhases.filter((p) => p.subgrouping === "CONTRACTED WORK");
+              // Group contracted phases by bidName for multi-bid display
+              const contractedByBid = new Map<string, CostingPhase[]>();
+              for (const phase of contracted) {
+                const key = phase.bidName ?? "Base Bid";
+                if (!contractedByBid.has(key)) contractedByBid.set(key, []);
+                contractedByBid.get(key)!.push(phase);
+              }
+              const contractedBids = Array.from(contractedByBid.keys());
+              const hasMultipleBids = contractedBids.length > 1;
               const cos = jobPhases.filter((p) => p.subgrouping === "CHANGE ORDER");
               const fixturePhases = jobPhases.filter((p) => p.subgrouping === "FIXTURE");
               const jobContract = jobPhases.reduce((s, p) => s + p.contractValue, 0);
@@ -654,13 +663,17 @@ export default function ProjectManagementPage() {
                     ) : (
                       <div className="border-t border-gray-100 px-4 py-3 space-y-3">
                         {contracted.length > 0 && (
-                          <div>
-                            {cos.length > 0 && (
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
-                                Contracted Work
-                              </p>
-                            )}
-                            <PhaseTable phases={contracted} onUpdate={handleUpdate} />
+                          <div className="space-y-2">
+                            {contractedBids.map((bid) => (
+                              <div key={bid}>
+                                {(hasMultipleBids || cos.length > 0) && (
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+                                    {hasMultipleBids ? `Contracted Work — ${bid}` : "Contracted Work"}
+                                  </p>
+                                )}
+                                <PhaseTable phases={contractedByBid.get(bid)!} onUpdate={handleUpdate} />
+                              </div>
+                            ))}
                           </div>
                         )}
                         {cos.length > 0 && (

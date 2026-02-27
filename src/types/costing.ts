@@ -8,6 +8,8 @@ export interface CostingPhase {
   label: string;
   subgrouping: "CONTRACTED WORK" | "CHANGE ORDER" | "FIXTURE";
   coId?: string;
+  estimateId?: string;   // source estimate ID
+  bidName?: string;      // from estimate bidName, defaulting to "Base Bid"
   estMaterialCost: number;
   estLaborCost: number;
   estHours: number;
