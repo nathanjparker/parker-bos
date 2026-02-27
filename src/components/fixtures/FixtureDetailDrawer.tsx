@@ -579,7 +579,8 @@ export default function FixtureDetailDrawer({ fixture, onClose }: Props) {
   );
 }
 
-function fmt(n: number): string {
+function fmt(n: number | null | undefined): string {
+  if (n == null || isNaN(n)) return "—";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",

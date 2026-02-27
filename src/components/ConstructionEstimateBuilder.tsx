@@ -655,7 +655,7 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
               size: f.size ?? null,
               manufacturer: f.manufacturer ?? null,
               model: f.model ?? null,
-              budgetUnitPrice: f.budgetUnitPrice ?? null,
+              budgetUnitPrice: (f.budgetUnitPrice != null && !isNaN(f.budgetUnitPrice)) ? f.budgetUnitPrice : null,
               // Procurement
               vendor: null,
               actualUnitPrice: null,

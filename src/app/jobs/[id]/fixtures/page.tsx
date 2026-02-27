@@ -29,11 +29,12 @@ import {
   type FixtureCategory,
 } from "@/types/fixtures";
 import FixtureDetailDrawer from "@/components/fixtures/FixtureDetailDrawer";
+import SpecSheetLibraryModal from "@/components/fixtures/SpecSheetLibraryModal";
 
 const CATEGORY_TABS: FixtureCategory[] = ["Parker Fixture", "Parker Equipment", "By Others"];
 
-function fmt(n: number | null): string {
-  if (n === null) return "—";
+function fmt(n: number | null | undefined): string {
+  if (n == null || isNaN(n)) return "—";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -50,6 +51,8 @@ export default function FixturesPage() {
 
   // Drawer
   const [selectedFixture, setSelectedFixture] = useState<JobFixture | null>(null);
+  // Spec library modal
+  const [showSpecLibrary, setShowSpecLibrary] = useState(false);
 
   // Filters
   const [searchText, setSearchText] = useState("");
@@ -77,7 +80,7 @@ export default function FixturesPage() {
     const unsub = onSnapshot(q, (snap) => {
       const docs = snap.docs
         .map((d) => ({ id: d.id, ...(d.data() as Omit<JobFixture, "id">) }))
-        .sort((a, b) => a.sortOrder - b.sortOrder);
+        .sort((a, b) => a.materialGroup.localeCompare(b.materialGroup) || a.sortOrder - b.sortOrder);
       setFixtures(docs);
       setLoading(false);
     });
@@ -166,11 +169,10 @@ export default function FixturesPage() {
           </div>
           <button
             type="button"
-            disabled
-            title="Coming soon"
-            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed"
+            onClick={() => setShowSpecLibrary(true)}
+            className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Export CSV
+            Spec Library
           </button>
         </div>
 
@@ -269,6 +271,7 @@ export default function FixturesPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Description</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Manufacturer / Model</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-400">Budget</th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-400 w-12">Spec</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Procurement</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Submittal</th>
                     <th className="w-10" />
@@ -306,6 +309,27 @@ export default function FixturesPage() {
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-gray-700">
                           {fmt(f.budgetUnitPrice)}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {f.specSheetUrl ? (
+                            <a
+                              href={f.specSheetUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              title="View spec sheet"
+                              className="inline-flex text-green-600 hover:text-green-700"
+                            >
+                              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M3 3.5A1.5 1.5 0 014.5 2h6.879a1.5 1.5 0 011.06.44l4.122 4.12A1.5 1.5 0 0117 7.622V16.5a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 013 16.5v-13z" />
+                              </svg>
+                            </a>
+                          ) : (
+                            <span className="text-gray-300">
+                              <svg className="h-4 w-4 inline" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M3 3.5A1.5 1.5 0 014.5 2h6.879a1.5 1.5 0 011.06.44l4.122 4.12A1.5 1.5 0 0117 7.622V16.5a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 013 16.5v-13z" />
+                              </svg>
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           {byOthers ? (
@@ -366,6 +390,12 @@ export default function FixturesPage() {
       <FixtureDetailDrawer
         fixture={selectedFixture}
         onClose={() => setSelectedFixture(null)}
+      />
+
+      {/* Spec sheet library modal */}
+      <SpecSheetLibraryModal
+        open={showSpecLibrary}
+        onClose={() => setShowSpecLibrary(false)}
       />
     </AppShell>
   );
