@@ -153,14 +153,14 @@ export default function FixtureDetailDrawer({ fixture, onClose }: Props) {
   }
 
   function handleClose() {
-    if (isDirty(form, fixture!)) {
+    if (form && fixture && isDirty(form, fixture)) {
       if (!window.confirm("You have unsaved changes. Discard them?")) return;
     }
     onClose();
   }
 
   async function handleSave() {
-    if (!fixture) return;
+    if (!fixture || !form) return;
     setSaving(true);
     setSaveError("");
     try {
