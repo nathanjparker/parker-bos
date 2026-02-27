@@ -513,6 +513,12 @@ export default function JobDetailPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
+                  <Link
+                    href={`/jobs/${job.id}/fixtures`}
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Fixtures &amp; Equipment →
+                  </Link>
                   {costingPhases.length > 0 && (
                     <Link
                       href="/project-management"

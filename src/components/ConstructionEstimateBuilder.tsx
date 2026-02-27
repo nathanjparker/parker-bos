@@ -42,6 +42,9 @@ interface LocalFixture {
   size: string | null;
   description: string;
   sortOrder: number;
+  manufacturer: string | null;
+  model: string | null;
+  budgetUnitPrice: number | null;
 }
 
 function fmt(n: number): string {
@@ -487,6 +490,9 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
           size: row.size,
           description: row.description,
           sortOrder,
+          manufacturer: row.manufacturer,
+          model: row.model,
+          budgetUnitPrice: row.budgetUnitPrice,
         });
         newFixtures.push({
           id: ref.id,
@@ -497,6 +503,9 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
           size: row.size,
           description: row.description,
           sortOrder,
+          manufacturer: row.manufacturer,
+          model: row.model,
+          budgetUnitPrice: row.budgetUnitPrice,
         });
       }
       setFixtures(newFixtures);
@@ -614,26 +623,54 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
 
       // Fixtures → jobFixtures (NOT costingPhases)
       if (fixtures.length > 0) {
+        // Look up any existing spec sheets before writing
+        async function lookupSpecSheet(manufacturer: string | null, model: string | null): Promise<string | null> {
+          if (!manufacturer || !model) return null;
+          const snap = await getDocs(
+            query(
+              collection(db, "specSheetLibrary"),
+              where("manufacturerKey", "==", manufacturer.toLowerCase()),
+              where("modelKey", "==", model.toLowerCase())
+            )
+          );
+          return snap.empty ? null : (snap.docs[0].data().url as string);
+        }
+        const specSheetUrls = await Promise.all(
+          fixtures.map((f) => lookupSpecSheet(f.manufacturer ?? null, f.model ?? null))
+        );
         await Promise.all(
-          fixtures.map((f) =>
+          fixtures.map((f, i) =>
             addDoc(collection(db, "jobFixtures"), {
               jobId: effectiveJobId,
               jobName: effectiveName,
               estimateId: resolvedId,
               materialGroup: f.materialGroup,
               costCode: f.costCode,
+              sortOrder: f.sortOrder,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              // Specification
+              description: f.description,
               quantity: f.quantity,
               size: f.size ?? null,
-              description: f.description,
-              sortOrder: f.sortOrder,
+              manufacturer: f.manufacturer ?? null,
+              model: f.model ?? null,
+              budgetUnitPrice: f.budgetUnitPrice ?? null,
+              // Procurement
               vendor: null,
-              make: null,
-              model: null,
-              unitPrice: null,
-              status: "Unspecified",
-              specSheetUrl: null,
+              actualUnitPrice: null,
+              dateNeededBy: null,
+              dateOrdered: null,
+              eta: null,
+              dateDelivered: null,
+              poNumber: null,
+              notes: null,
               webLink: null,
-              createdAt: serverTimestamp(),
+              specSheetUrl: specSheetUrls[i],
+              attachments: [],
+              // Status
+              procurementStatus: "Unspecified",
+              submittalStatus: "Not Submitted",
             })
           )
         );
@@ -1054,6 +1091,7 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
                         <th className="px-3 py-2 text-right font-semibold text-gray-500">Qty</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-500">Size</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-500">Description</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-500">Manufacturer</th>
                         <th className="w-8" />
                       </tr>
                     </thead>
@@ -1067,6 +1105,7 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
                           <td className="px-3 py-1.5 text-right tabular-nums text-gray-700">{row.quantity}</td>
                           <td className="px-3 py-1.5 text-gray-600">{row.size ?? "—"}</td>
                           <td className="px-3 py-1.5 text-gray-800">{row.description}</td>
+                          <td className="px-3 py-1.5 text-gray-500">{row.manufacturer ?? "—"}</td>
                           <td className="px-2 py-1.5">
                             <button
                               type="button"
@@ -1124,6 +1163,7 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
                       <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 w-14">Qty</th>
                       <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400 w-16">Size</th>
                       <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Description</th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-400">Manufacturer</th>
                       <th className="w-8" />
                     </tr>
                   </thead>
@@ -1133,6 +1173,7 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
                         <td className="px-4 py-2.5 text-sm tabular-nums text-gray-700">{f.quantity}</td>
                         <td className="px-4 py-2.5 text-sm text-gray-500">{f.size ?? "—"}</td>
                         <td className="px-4 py-2.5 text-sm text-gray-800">{f.description}</td>
+                        <td className="px-4 py-2.5 text-sm text-gray-500">{f.manufacturer ?? "—"}</td>
                         <td className="px-2 py-2.5">
                           <button
                             type="button"
