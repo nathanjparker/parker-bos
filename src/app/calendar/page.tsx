@@ -175,37 +175,40 @@ export default function CalendarPage() {
     return map;
   }, [sessions]);
 
-  // Today's sessions
+  // Today's sessions (respects crew + job filter)
   const todaySessions = useMemo(() => {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-    return sessions.filter((s) => {
+    return filteredSessions.filter((s) => {
       if (s.status === "cancelled") return false;
       const start = s.startDate?.toDate?.();
       const end = s.endDate?.toDate?.();
       if (!start || !end) return false;
-      // Session covers today if start <= today && end >= today
       return start <= todayEnd && end >= todayStart;
     });
-  }, [sessions]);
+  }, [filteredSessions]);
 
-  // Budget warnings
+  // Budget warnings (respects job filter)
   const budgetWarnings = useMemo(() => {
-    return phases
+    const relevantPhases = jobFilter === "all"
+      ? phases
+      : phases.filter((p) => p.jobId === jobFilter);
+    return relevantPhases
       .filter((p) => {
         const warning = getBudgetWarning(p);
         return warning !== "normal";
       })
       .map((p) => ({ phase: p, warning: getBudgetWarning(p) }));
-  }, [phases]);
+  }, [phases, jobFilter]);
 
-  // Stalled jobs: most recent session endDate > 21 days ago
+  // Stalled jobs: most recent session endDate > 21 days ago (respects job filter)
   const stalledJobs = useMemo(() => {
     const now = new Date();
     const stalled: Array<{ job: Job; daysSince: number }> = [];
+    const relevantJobs = jobFilter === "all" ? jobs : jobs.filter((j) => j.id === jobFilter);
 
-    for (const job of jobs) {
+    for (const job of relevantJobs) {
       if (job.projectPhase !== "Awarded" && job.projectPhase !== "Active") continue;
       const jobSessions = sessions.filter(
         (s) => s.jobId === job.id && s.status !== "cancelled"
@@ -224,7 +227,7 @@ export default function CalendarPage() {
       }
     }
     return stalled.sort((a, b) => b.daysSince - a.daysSince);
-  }, [jobs, sessions]);
+  }, [jobs, sessions, jobFilter]);
 
   // Selected crew member name (for title)
   const selectedCrewName = useMemo(() => {
