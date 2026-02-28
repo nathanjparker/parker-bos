@@ -21,12 +21,21 @@ export const EMPLOYEE_ROLE_BADGE: Record<EmployeeRole, string> = {
 export const EMPLOYEE_STATUS = ["Employed", "Terminated"] as const;
 export type EmployeeStatus = typeof EMPLOYEE_STATUS[number];
 
+export type AccessLevel = "office" | "field" | "both";
+export const ACCESS_LEVELS: AccessLevel[] = ["office", "field", "both"];
+export const ACCESS_LEVEL_LABELS: Record<AccessLevel, string> = {
+  office: "Office",
+  field: "Field",
+  both: "Both",
+};
+
 export interface Employee {
   id: string;
   firstName: string;
   lastName: string;
   role?: string;
   status?: string;
+  accessLevel?: AccessLevel;
   phone?: string;
   email?: string;
   emailPersonal?: string;

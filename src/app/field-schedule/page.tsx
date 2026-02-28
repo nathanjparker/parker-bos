@@ -12,12 +12,14 @@ import {
 import { db, getFirebaseAuth } from "@/lib/firebase";
 import FieldScheduleView from "@/components/calendar/FieldScheduleView";
 import SessionCompletionModal from "@/components/calendar/SessionCompletionModal";
+import type { AccessLevel } from "@/types/employees";
 import type { ScheduleSession } from "@/types/scheduling";
 
 export default function FieldSchedulePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [accessLevel, setAccessLevel] = useState<AccessLevel | null>(null);
   const [loading, setLoading] = useState(true);
   const [completionSession, setCompletionSession] = useState<ScheduleSession | null>(null);
 
@@ -52,7 +54,9 @@ export default function FieldSchedulePage() {
       );
       const uidSnap = await getDocs(byUid);
       if (!uidSnap.empty) {
+        const data = uidSnap.docs[0].data();
         setEmployeeId(uidSnap.docs[0].id);
+        setAccessLevel((data.accessLevel as AccessLevel) ?? "office");
         setLoading(false);
         return;
       }
@@ -65,7 +69,9 @@ export default function FieldSchedulePage() {
         );
         const emailSnap = await getDocs(byEmail);
         if (!emailSnap.empty) {
+          const data = emailSnap.docs[0].data();
           setEmployeeId(emailSnap.docs[0].id);
+          setAccessLevel((data.accessLevel as AccessLevel) ?? "office");
           setLoading(false);
           return;
         }
@@ -94,6 +100,26 @@ export default function FieldSchedulePage() {
           <h1 className="text-lg font-bold text-gray-900">Field Schedule</h1>
           <p className="mt-4 text-sm text-gray-500">
             No employee record linked to your account. Contact your project manager.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="mt-6 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (accessLevel === "office") {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="mx-auto w-full max-w-2xl px-4 py-8 text-center">
+          <h1 className="text-lg font-bold text-gray-900">Field Schedule</h1>
+          <p className="mt-4 text-sm text-gray-500">
+            Field schedule is available for field team members.
           </p>
           <button
             type="button"

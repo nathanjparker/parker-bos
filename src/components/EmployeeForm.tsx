@@ -4,13 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addDoc, collection, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { EMPLOYEE_ROLES, EMPLOYEE_STATUS, type Employee } from "@/types/employees";
+import { ACCESS_LEVELS, ACCESS_LEVEL_LABELS, EMPLOYEE_ROLES, EMPLOYEE_STATUS, type Employee } from "@/types/employees";
 
 type FormValues = {
   firstName: string;
   lastName: string;
   role: string;
   status: string;
+  accessLevel: string;
   hireDate: string;
   birthday: string;
   phone: string;
@@ -35,7 +36,7 @@ type FormValues = {
 };
 
 const EMPTY: FormValues = {
-  firstName: "", lastName: "", role: "", status: "Employed",
+  firstName: "", lastName: "", role: "", status: "Employed", accessLevel: "office",
   hireDate: "", birthday: "",
   phone: "", email: "", emailPersonal: "", homeAddress: "", deviceNumber: "",
   partnerName: "", partnerPhone: "", partnerEmail: "",
@@ -47,7 +48,7 @@ const EMPTY: FormValues = {
 function employeeToForm(e: Employee): FormValues {
   return {
     firstName: e.firstName ?? "", lastName: e.lastName ?? "",
-    role: e.role ?? "", status: e.status ?? "Employed",
+    role: e.role ?? "", status: e.status ?? "Employed", accessLevel: e.accessLevel ?? "office",
     hireDate: e.hireDate ?? "", birthday: e.birthday ?? "",
     phone: e.phone ?? "", email: e.email ?? "",
     emailPersonal: e.emailPersonal ?? "", homeAddress: e.homeAddress ?? "",
@@ -116,6 +117,7 @@ export default function EmployeeForm({
       lastName: values.lastName.trim(),
       role: s(values.role),
       status: s(values.status),
+      accessLevel: (values.accessLevel || "office") as Employee["accessLevel"],
       hireDate: s(values.hireDate),
       birthday: s(values.birthday),
       phone: s(values.phone),
@@ -191,6 +193,13 @@ export default function EmployeeForm({
           <select className={inputCls} value={values.status} onChange={(e) => set("status", e.target.value)}>
             {EMPLOYEE_STATUS.map((s) => (
               <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Access Level">
+          <select className={inputCls} value={values.accessLevel} onChange={(e) => set("accessLevel", e.target.value)}>
+            {ACCESS_LEVELS.map((l) => (
+              <option key={l} value={l}>{ACCESS_LEVEL_LABELS[l]}</option>
             ))}
           </select>
         </Field>

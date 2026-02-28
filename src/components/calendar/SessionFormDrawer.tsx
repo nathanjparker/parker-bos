@@ -16,7 +16,7 @@ import {
 } from "firebase/firestore";
 import { db, getFirebaseAuth } from "@/lib/firebase";
 import type { CostingPhase } from "@/types/costing";
-import { employeeDisplayName, type Employee } from "@/types/employees";
+import { ACCESS_LEVEL_LABELS, employeeDisplayName, type AccessLevel, type Employee } from "@/types/employees";
 import type { Job } from "@/types/jobs";
 import {
   checkCrewConflicts,
@@ -661,7 +661,7 @@ export default function SessionFormDrawer({
                 <option value="">+ Add crew member…</option>
                 {availableEmployees.map((e) => (
                   <option key={e.id} value={e.id}>
-                    {employeeDisplayName(e)}
+                    {employeeDisplayName(e)}{e.accessLevel ? ` (${ACCESS_LEVEL_LABELS[e.accessLevel as AccessLevel] ?? e.accessLevel})` : ""}
                   </option>
                 ))}
               </select>
