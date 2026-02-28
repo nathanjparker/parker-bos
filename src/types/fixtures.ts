@@ -14,10 +14,52 @@ export type SubmittalStatus =
   | "Approved"
   | "Revise & Resubmit";
 
+export type AttachmentType = "Spec Sheet" | "Install Guide" | "Manual" | "Other";
+
 export type FixtureCategory =
   | "Parker Fixture"
   | "Parker Equipment"
+  | "Parker Misc"
   | "By Others";
+
+// ── Attachment types ─────────────────────────────────────────────────────────
+
+export interface FixtureAttachment {
+  url: string;
+  filename: string;
+  type: AttachmentType;
+  uploadedAt: Timestamp;
+  storagePath: string;
+}
+
+export const ATTACHMENT_TYPES: AttachmentType[] = [
+  "Spec Sheet",
+  "Install Guide",
+  "Manual",
+  "Other",
+];
+
+// ── Spec Sheet Library ───────────────────────────────────────────────────────
+
+export interface SpecSheetLibraryEntry {
+  id: string;
+  manufacturer: string;
+  model: string;
+  description: string;
+  pdfUrl: string;
+  storagePath: string;
+  version: number;
+  versionHistory: {
+    version: number;
+    pdfUrl: string;
+    replacedAt: Timestamp;
+  }[];
+  uploadedAt: Timestamp;
+  updatedAt: Timestamp;
+  usageCount: number;
+}
+
+// ── Job Fixture ──────────────────────────────────────────────────────────────
 
 export interface JobFixture {
   id: string;
@@ -48,7 +90,8 @@ export interface JobFixture {
   notes: string | null;
   webLink: string | null;
   specSheetUrl: string | null;
-  attachments: string[];
+  specSheetLibraryId: string | null;
+  attachments: FixtureAttachment[];
   // Status
   procurementStatus: ProcurementStatus;
   submittalStatus: SubmittalStatus;
@@ -56,12 +99,14 @@ export interface JobFixture {
 
 // ── Classification ────────────────────────────────────────────────────────────
 
-const PARKER_FIXTURES = ["01-FXT", "03-FXG", "03-FXR", "03-FXT"];
+const PARKER_FIXTURES = ["03-FXT", "03-FXR", "03-FXG"];
 const PARKER_EQUIPMENT = ["02-EQG", "02-EQR", "02-EQT", "06-WH"];
+const PARKER_MISC = ["09-M01", "09-M02", "demo"];
 
 export function getFixtureCategory(mg: string): FixtureCategory {
   if (PARKER_FIXTURES.includes(mg)) return "Parker Fixture";
   if (PARKER_EQUIPMENT.includes(mg)) return "Parker Equipment";
+  if (PARKER_MISC.includes(mg)) return "Parker Misc";
   return "By Others";
 }
 
@@ -129,3 +174,25 @@ export const PHASE_BADGE_COLORS: Record<string, string> = {
   HVC:    "bg-cyan-100 text-cyan-700",
   MISC01: "bg-gray-100 text-gray-600",
 };
+
+// ── Normalizers (backwards compatibility) ────────────────────────────────────
+
+/** Convert legacy string[] attachments to FixtureAttachment[] */
+export function normalizeAttachments(raw: unknown): FixtureAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) => {
+    if (typeof item === "string") {
+      // Legacy: plain URL string
+      const filename = decodeURIComponent(item.split("/").pop()?.split("?")[0] ?? "file.pdf");
+      return {
+        url: item,
+        filename,
+        type: "Other" as AttachmentType,
+        uploadedAt: null as unknown as Timestamp,
+        storagePath: "",
+      };
+    }
+    // Already a FixtureAttachment object
+    return item as FixtureAttachment;
+  });
+}

@@ -6,6 +6,14 @@ service firebase.storage {
     match /files/{allPaths=**} {
       allow read, write: if request.auth != null;
     }
+    // Fixture attachments: attachments/{jobId}/{fixtureId}/{filename}
+    match /attachments/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    // Spec sheet library PDFs: specSheets/library/{docId}/v{n}.pdf
+    match /specSheets/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
     match /{allPaths=**} {
       allow read, write: if false;
     }
