@@ -15,11 +15,23 @@ import {
 } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import BudgetImport from "@/components/BudgetImport";
+import CapacityBadge from "@/components/calendar/CapacityBadge";
+import SessionCompletionModal from "@/components/calendar/SessionCompletionModal";
+import TMProgressSnapshot from "@/components/calendar/TMProgressSnapshot";
 import ContactDetailModal from "@/components/ContactDetailModal";
 import FileList from "@/components/FileList";
 import FileUpload from "@/components/FileUpload";
 import { db, getFirebaseAuth } from "@/lib/firebase";
 import { calcBillable, type CostingPhase } from "@/types/costing";
+import {
+  GAP_REASON_LABELS,
+  getRemainingHours,
+  getSessionCapacity,
+  SESSION_STATUS_COLORS,
+  SESSION_STATUS_LABELS,
+  SESSION_TYPE_LABELS,
+  type ScheduleSession,
+} from "@/types/scheduling";
 import {
   ACTIVITY_TAGS,
   PHASE_BADGE_CLASS,
@@ -70,6 +82,8 @@ export default function JobDetailPage() {
   const [costingPhases, setCostingPhases] = useState<CostingPhase[]>([]);
   const [showBudgetImport, setShowBudgetImport] = useState(false);
   const [contactModalId, setContactModalId] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<ScheduleSession[]>([]);
+  const [completionSession, setCompletionSession] = useState<ScheduleSession | null>(null);
 
   const auth = useMemo(() => {
     try {
@@ -113,6 +127,20 @@ export default function JobDetailPage() {
     return onSnapshot(q, (snap) => {
       setCostingPhases(
         snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CostingPhase, "id">) }))
+      );
+    });
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const q = query(
+      collection(db, "scheduleSessions"),
+      where("jobId", "==", id),
+      orderBy("startDate", "asc")
+    );
+    return onSnapshot(q, (snap) => {
+      setSessions(
+        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ScheduleSession, "id">) }))
       );
     });
   }, [id]);
@@ -484,6 +512,139 @@ export default function JobDetailPage() {
           </div>
         </div>
 
+        {/* Schedule & Progress — Active and Install jobs */}
+        {(job.projectPhase === "Active" || job.projectPhase === "Install") && (() => {
+          const upcoming = sessions.filter(
+            (s) => s.status !== "completed" && s.status !== "cancelled"
+          );
+          const completedWithGap = sessions
+            .filter((s) => s.status === "completed" && s.gapInfo)
+            .sort((a, b) => {
+              const at = a.completedAt?.toDate?.()?.getTime() ?? 0;
+              const bt = b.completedAt?.toDate?.()?.getTime() ?? 0;
+              return bt - at;
+            });
+          const latestGap = completedWithGap[0]?.gapInfo ?? null;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          if (upcoming.length === 0 && !latestGap && costingPhases.length === 0) return null;
+
+          return (
+            <>
+              {/* Schedule */}
+              {(upcoming.length > 0 || latestGap) && (
+                <div className="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                    <h2 className="text-sm font-semibold text-gray-900">Schedule</h2>
+                    <Link href="/calendar" className="text-xs text-blue-600 hover:underline">
+                      View on Calendar →
+                    </Link>
+                  </div>
+                  <div className="px-5 py-4 space-y-3">
+                    {upcoming.slice(0, 3).map((s) => {
+                      const startStr = s.startDate?.toDate?.()?.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      });
+                      const endStr = s.endDate?.toDate?.()?.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      });
+                      const sessionStart = s.startDate?.toDate?.();
+                      const sessionEnd = s.endDate?.toDate?.() ?? sessionStart;
+                      const isToday = (() => {
+                        if (!sessionStart) return false;
+                        const sStart = new Date(sessionStart.getFullYear(), sessionStart.getMonth(), sessionStart.getDate());
+                        const sEnd = sessionEnd
+                          ? new Date(sessionEnd.getFullYear(), sessionEnd.getMonth(), sessionEnd.getDate())
+                          : sStart;
+                        return today >= sStart && today <= sEnd;
+                      })();
+                      const phase = s.costingPhaseId
+                        ? costingPhases.find((p) => p.id === s.costingPhaseId)
+                        : null;
+
+                      return (
+                        <div
+                          key={s.id}
+                          className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900">
+                                {s.sessionType === "phase-work"
+                                  ? s.phaseLabel
+                                  : SESSION_TYPE_LABELS[s.sessionType]}
+                              </span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${SESSION_STATUS_COLORS[s.status]}`}
+                              >
+                                {SESSION_STATUS_LABELS[s.status]}
+                              </span>
+                            </div>
+                            {phase && (
+                              <CapacityBadge
+                                sessionCapacity={getSessionCapacity(s)}
+                                remainingHours={getRemainingHours(phase)}
+                                compact
+                              />
+                            )}
+                          </div>
+                          <div className="mt-1 text-xs text-gray-500">
+                            {startStr}
+                            {endStr && endStr !== startStr ? ` – ${endStr}` : ""}
+                            {" · "}
+                            {s.assignedCrew
+                              .map((c) => c.employeeName.split(" ")[0])
+                              .join(", ")}
+                          </div>
+                          {isToday &&
+                            (s.status === "confirmed" || s.status === "in-progress") && (
+                              <button
+                                type="button"
+                                onClick={() => setCompletionSession(s)}
+                                className="mt-2 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700"
+                              >
+                                Complete Session
+                              </button>
+                            )}
+                        </div>
+                      );
+                    })}
+                    {latestGap && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-amber-700">Waiting</span>
+                          <span className="text-xs text-amber-600">
+                            {GAP_REASON_LABELS[
+                              latestGap.waitingOn as keyof typeof GAP_REASON_LABELS
+                            ] ?? latestGap.waitingOn}
+                          </span>
+                        </div>
+                        {latestGap.waitingNote && (
+                          <p className="mt-1 text-xs text-amber-600">{latestGap.waitingNote}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {/* T&M Progress */}
+              {costingPhases.length > 0 && (
+                <div className="mt-6 rounded-xl border border-gray-200 bg-white shadow-sm">
+                  <div className="border-b border-gray-100 px-5 py-4">
+                    <h2 className="text-sm font-semibold text-gray-900">Progress</h2>
+                  </div>
+                  <div className="px-5 py-4">
+                    <TMProgressSnapshot jobId={id} />
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
         {/* Budget / Costing — Awarded, Active, and Install jobs */}
         {(job.projectPhase === "Awarded" || job.projectPhase === "Active" || job.projectPhase === "Install") && (() => {
           const contracted = costingPhases.filter((p) => p.subgrouping === "CONTRACTED WORK");
@@ -613,6 +774,14 @@ export default function JobDetailPage() {
           jobName={job.jobName}
           existingPhases={costingPhases}
           onClose={() => setShowBudgetImport(false)}
+        />
+      )}
+
+      {completionSession && (
+        <SessionCompletionModal
+          session={completionSession}
+          onClose={() => setCompletionSession(null)}
+          onComplete={() => setCompletionSession(null)}
         />
       )}
     </AppShell>
