@@ -14,7 +14,7 @@ type NavItem = {
   children?: NavChild[];
 };
 
-const JOBS_PATHS = ["/jobs", "/project-management", "/estimates", "/change-orders"];
+const JOBS_PATHS = ["/jobs", "/project-management", "/calendar", "/estimates", "/change-orders"];
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard" },
@@ -24,6 +24,7 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { label: "All Jobs", href: "/jobs" },
       { label: "Project Management", href: "/project-management" },
+      { label: "Calendar", href: "/calendar" },
       { label: "Estimates", href: "/estimates" },
       { label: "Change Orders", href: "/change-orders" },
     ],
