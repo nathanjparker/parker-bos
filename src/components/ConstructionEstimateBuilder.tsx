@@ -1013,26 +1013,43 @@ export default function ConstructionEstimateBuilder({ estimateId }: Props) {
       {/* Totals bar */}
       {phases.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm px-6 py-4">
-          <div className="flex flex-wrap items-center gap-8">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Total Hours</p>
-              <p className="text-xl font-bold tabular-nums text-gray-900">
-                {rollup.totalHours % 1 === 0 ? rollup.totalHours : rollup.totalHours.toFixed(1)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Est. Labor</p>
-              <p className="text-xl font-bold tabular-nums text-gray-900">{fmt(rollup.totalLaborCost)}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Est. Materials</p>
-              <p className="text-xl font-bold tabular-nums text-gray-900">{fmt(rollup.totalMaterialCost)}</p>
-            </div>
-            <div className="border-l border-gray-200 pl-8">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Contract Value</p>
-              <p className="text-3xl font-bold tabular-nums text-gray-900">{fmt(rollup.totalContractValue)}</p>
-            </div>
-          </div>
+          {(() => {
+            const totalCost = rollup.totalMaterialCost + rollup.totalLaborCost;
+            const margin = rollup.totalContractValue > 0
+              ? ((rollup.totalContractValue - totalCost) / rollup.totalContractValue) * 100
+              : 0;
+            const marginColor = margin >= 30 ? "text-green-700" : margin >= 15 ? "text-amber-600" : "text-red-600";
+            return (
+              <div className="flex flex-wrap items-center gap-8">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Total Hours</p>
+                  <p className="text-xl font-bold tabular-nums text-gray-900">
+                    {rollup.totalHours % 1 === 0 ? rollup.totalHours : rollup.totalHours.toFixed(1)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Est. Labor</p>
+                  <p className="text-xl font-bold tabular-nums text-gray-900">{fmt(rollup.totalLaborCost)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Est. Materials</p>
+                  <p className="text-xl font-bold tabular-nums text-gray-900">{fmt(rollup.totalMaterialCost)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Total Cost</p>
+                  <p className="text-xl font-bold tabular-nums text-gray-900">{fmt(totalCost)}</p>
+                </div>
+                <div className="border-l border-gray-200 pl-8">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Contract Value</p>
+                  <p className="text-3xl font-bold tabular-nums text-gray-900">{fmt(rollup.totalContractValue)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Profit Margin</p>
+                  <p className={`text-xl font-bold tabular-nums ${marginColor}`}>{margin.toFixed(1)}%</p>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

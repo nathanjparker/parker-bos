@@ -568,6 +568,38 @@ export default function JobDetailPage() {
                       <BudgetPhaseTable phases={fixturePhases} />
                     </div>
                   )}
+                  {/* Grand totals */}
+                  {(() => {
+                    const grandMat = costingPhases.reduce((s, p) => s + p.estMaterialCost, 0);
+                    const grandLabor = costingPhases.reduce((s, p) => s + p.estLaborCost, 0);
+                    const grandCost = grandMat + grandLabor;
+                    const grandMargin = totalContract > 0 ? ((totalContract - grandCost) / totalContract) * 100 : 0;
+                    const mColor = grandMargin >= 30 ? "text-green-700" : grandMargin >= 15 ? "text-amber-600" : "text-red-600";
+                    return (
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg bg-gray-50 border border-gray-200 px-4 py-3">
+                        <div className="text-xs">
+                          <span className="text-gray-500">Total Material: </span>
+                          <span className="font-semibold text-gray-800">{formatCurrency(grandMat) !== "—" ? formatCurrency(grandMat) : "$0"}</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Total Labor: </span>
+                          <span className="font-semibold text-gray-800">{formatCurrency(grandLabor) !== "—" ? formatCurrency(grandLabor) : "$0"}</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Total Cost: </span>
+                          <span className="font-semibold text-gray-900">{formatCurrency(grandCost) !== "—" ? formatCurrency(grandCost) : "$0"}</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Contract: </span>
+                          <span className="font-semibold text-gray-900">{formatCurrency(totalContract) !== "—" ? formatCurrency(totalContract) : "$0"}</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Profit Margin: </span>
+                          <span className={`font-semibold ${mColor}`}>{grandMargin.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
@@ -591,6 +623,18 @@ function BudgetPhaseTable({ phases }: { phases: CostingPhase[] }) {
   function fmt(n: number) {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
   }
+  const totalMat = phases.reduce((s, p) => s + p.estMaterialCost, 0);
+  const totalLabor = phases.reduce((s, p) => s + p.estLaborCost, 0);
+  const totalHrs = phases.reduce((s, p) => s + p.estHours, 0);
+  const totalContract = phases.reduce((s, p) => s + p.contractValue, 0);
+  const totalHrsLeft = phases.reduce((s, p) => {
+    if (p.estHours <= 0) return s;
+    return s + Math.round(p.estHours * (1 - (p.completedPct ?? 0) / 100));
+  }, 0);
+  const totalBillable = phases.reduce((s, p) => s + calcBillable(p.contractValue, p.completedPct), 0);
+  const totalCost = totalMat + totalLabor;
+  const margin = totalContract > 0 ? ((totalContract - totalCost) / totalContract) * 100 : 0;
+  const marginColor = margin >= 30 ? "text-green-700" : margin >= 15 ? "text-amber-600" : "text-red-600";
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200 text-xs">
@@ -629,6 +673,27 @@ function BudgetPhaseTable({ phases }: { phases: CostingPhase[] }) {
             );
           })}
         </tbody>
+        <tfoot className="border-t-2 border-gray-300 bg-gray-50">
+          <tr className="font-semibold">
+            <td className="px-3 py-2 text-gray-900">Totals</td>
+            <td className="px-3 py-2 tabular-nums text-gray-900">{fmt(totalMat)}</td>
+            <td className="px-3 py-2 tabular-nums text-gray-900">{fmt(totalLabor)}</td>
+            <td className="px-3 py-2 tabular-nums text-gray-900">{totalHrs}</td>
+            <td className="px-3 py-2 tabular-nums text-gray-900">{fmt(totalContract)}</td>
+            <td className="px-3 py-2 text-gray-400">—</td>
+            <td className="px-3 py-2 tabular-nums text-gray-900">{totalHrsLeft > 0 ? totalHrsLeft : "—"}</td>
+            <td className="px-3 py-2 tabular-nums text-green-700">{fmt(totalBillable)}</td>
+          </tr>
+          <tr>
+            <td colSpan={8} className="px-3 py-1.5 text-[11px]">
+              <span className="text-gray-500">Cost: </span>
+              <span className="font-semibold text-gray-700">{fmt(totalCost)}</span>
+              <span className="mx-2 text-gray-300">&middot;</span>
+              <span className="text-gray-500">Margin: </span>
+              <span className={`font-semibold ${marginColor}`}>{margin.toFixed(1)}%</span>
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

@@ -169,7 +169,6 @@ export default function EstimatesPage() {
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Type</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Contract Value</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Margin</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Created</th>
                 </tr>
               </thead>
@@ -202,9 +201,6 @@ export default function EstimatesPage() {
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-gray-900 tabular-nums">
                       {formatCurrency(est.totalContractValue)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-600">
-                      {est.totalContractValue > 0 ? `${est.profitMargin.toFixed(1)}%` : "—"}
                     </td>
                     <td className="px-4 py-3 text-right text-gray-400 text-xs">
                       {formatDate(est.createdAt)}
