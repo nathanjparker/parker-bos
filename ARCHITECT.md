@@ -8,6 +8,22 @@ Never skip the git commit at the end of a session.
 ---
 
 ## Current Sprint
+**Module:** Fixture Management + Estimate Module Phase 2
+**Goal:** Stabilize fixture management, then move to PDF generation
+
+| Task | Status |
+|---|---|
+| Fixture Management — complete and stabilize | 🔲 Not Started |
+| Estimate list — status badges per estimate | ✅ Done |
+| PDF generation for estimates | 🔲 Not Started |
+| PDF generation for change orders | 🔲 Not Started |
+
+**Next Action When You Return:**
+Fixture Management needs serious work — start here before moving to PDF generation.
+
+---
+
+## Previous Sprint (Completed)
 **Module:** Estimate Module — Phase 1
 **Goal:** Complete the full estimate → award → project management handoff
 
@@ -18,15 +34,11 @@ Never skip the git commit at the end of a session.
 | Exclusions checklist on estimate (pre-checked, saves text) | ✅ Done |
 | Fix Mark Awarded — lowercase "jobs" bug | ✅ Done |
 | Fix Mark Awarded — stop creating costingPhases from fixtures | ✅ Done |
-| Migrate constructionFixtures → jobFixtures on award | 🔲 In Progress |
-| Add bidName field to estimate form | 🔲 Not Started |
-| Mark Awarded modal — Path B (link to existing job) | 🔲 Not Started |
-| Budget card — group costingPhases by bidName | 🔲 Not Started |
-| Estimate list — status badges per estimate | 🔲 Not Started |
-
-**Next Action When You Return:**
-Implement `bidName` field on estimate form and the two-path Mark Awarded modal.
-Reference: `07_MULTI_BID_ESTIMATES.md` — the full Cursor prompt is already written there.
+| Migrate constructionFixtures → jobFixtures on award | ✅ Done |
+| Add bidName field to estimate form | ✅ Done |
+| Mark Awarded modal — Path B (link to existing job) | ✅ Done |
+| Budget card — group costingPhases by bidName | ✅ Done |
+| Estimate list — status badges per estimate | ✅ Done |
 
 ---
 
@@ -43,14 +55,14 @@ Reference: `07_MULTI_BID_ESTIMATES.md` — the full Cursor prompt is already wri
 | Employees | authUid bridge added. Role/status fields exist. |
 | Jurisdictions | contactIds[] array FK. Legacy contactNames string coexists. |
 | Cost Codes | 12 seed codes. Managed in settings. |
-| Estimates (Basic) | Budget/T&M import works. FastPipe import now working. |
-| Settings | Cost codes page. Exclusions library page (new). |
+| Estimates | Multi-bid (bidName), award handoff, status badges, FastPipe import. |
+| Settings | Cost codes page. Exclusions library page. |
 
 ### 🔧 Partially Built
 | Module | What's Missing |
 |---|---|
-| Estimate Module | Multi-bid (bidName), award handoff fixes, PDF generation |
-| Fixture Management | jobFixtures collection exists after award. UI tab not built. |
+| Estimate Module | PDF generation (Phase 2), digital acceptance (Phase 3) |
+| Fixture Management | Sorting and spec library added but needs significant work before production ready |
 
 ### 🔲 Not Yet Started
 | Module | Priority | Reference Doc |
@@ -61,7 +73,6 @@ Reference: `07_MULTI_BID_ESTIMATES.md` — the full Cursor prompt is already wri
 | Finance Dashboard | Medium | Depends on Job Costing |
 | Mobile Field App | Medium | Depends on Time Tracking |
 | Calendar | Low | Not yet designed |
-| PDF Generation (Estimates + COs) | Medium | Phase 2 of Estimate Module |
 | Digital Acceptance (Email + Link) | Low | Phase 3 of Estimate Module |
 
 ---
@@ -90,6 +101,8 @@ Jobs
 estimates
   └── estimateLines (estimateId)  — budget line items by cost code
   └── constructionFixtures (estimateId) — FastPipe staging, pre-award only
+
+specSheetLibrary                  — global lookup by manufacturer + model
 
 employees
   └── authUid field               — bridges Firebase Auth to employee record
@@ -151,12 +164,11 @@ Key decisions still needed from questionnaire:
 
 ---
 
-## Estimate Module Phase 2 & 3 — Parked
+## Estimate Module Phase 2 & 3
 
-**Phase 2 (PDF Generation)**
+**Phase 2 (PDF Generation)** ← Current Sprint (after Fixture Management stabilized)
 - Generate PDF proposal from estimate data
 - Generate PDF from change orders
-- Do not start until Phase 1 handoff is fully working and tested
 
 **Phase 3 (Digital Acceptance)**
 - Email estimate to GC with accept link
@@ -174,7 +186,7 @@ Before closing Cursor:
 
 ---
 
-*Last updated: February 2026*
+*Last updated: February 27, 2026*
 *Primary dev environment: Cursor + Claude Code*
 *Deployment: Vercel (production, live data)*
-*Stack: Next.js 14, TypeScript, Firebase, Tailwind CSS*
+*Stack: Next.js 15, TypeScript, Firebase, Tailwind CSS*
