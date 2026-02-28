@@ -9,14 +9,28 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  Timestamp,
   updateDoc,
   where,
 } from "firebase/firestore";
 import AppShell from "@/components/AppShell";
 import BudgetImport from "@/components/BudgetImport";
+import CapacityBadge from "@/components/calendar/CapacityBadge";
+import SessionFormDrawer from "@/components/calendar/SessionFormDrawer";
 import { db } from "@/lib/firebase";
 import { calcBillable, type CostingPhase } from "@/types/costing";
 import { PHASE_BADGE_CLASS, type Job } from "@/types/jobs";
+import {
+  BUDGET_WARNING_COLORS,
+  BUDGET_WARNING_LABELS,
+  getBudgetWarning,
+  getRemainingHours,
+  getSessionCapacity,
+  SESSION_STATUS_COLORS,
+  SESSION_STATUS_LABELS,
+  SESSION_TYPE_LABELS,
+  type ScheduleSession,
+} from "@/types/scheduling";
 
 type PhaseFilter = "Both" | "Awarded" | "Active" | "Install";
 
@@ -398,6 +412,16 @@ export default function ProjectManagementPage() {
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [phaseFilter, setPhaseFilter] = useState<PhaseFilter>("Both");
   const [importJobId, setImportJobId] = useState<string | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [sessions, setSessions] = useState<ScheduleSession[]>([]);
+  const [sessionDrawer, setSessionDrawer] = useState<{
+    open: boolean;
+    session?: ScheduleSession | null;
+    jobId?: string;
+    jobName?: string;
+    jobNumber?: string;
+    costingPhaseId?: string;
+  }>({ open: false });
 
   // Listen to Awarded, Active, and Install jobs (all tracked in PM)
   useEffect(() => {
@@ -444,6 +468,47 @@ export default function ProjectManagementPage() {
 
     return () => unsubs.forEach((u) => u());
   }, [jobs]);
+
+  // Listen to schedule sessions for loaded jobs
+  useEffect(() => {
+    if (jobs.length === 0 || !showCalendar) {
+      setSessions([]);
+      return;
+    }
+    const jobIds = jobs.map((j) => j.id);
+    const chunks: string[][] = [];
+    for (let i = 0; i < jobIds.length; i += 30) chunks.push(jobIds.slice(i, i + 30));
+
+    const unsubs: (() => void)[] = [];
+    const sessionsByChunk: Map<number, ScheduleSession[]> = new Map();
+
+    chunks.forEach((chunk, idx) => {
+      const q = query(
+        collection(db, "scheduleSessions"),
+        where("jobId", "in", chunk),
+        orderBy("startDate", "asc")
+      );
+      const unsub = onSnapshot(q, (snap) => {
+        sessionsByChunk.set(
+          idx,
+          snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ScheduleSession, "id">) }))
+        );
+        setSessions(Array.from(sessionsByChunk.values()).flat());
+      });
+      unsubs.push(unsub);
+    });
+
+    return () => unsubs.forEach((u) => u());
+  }, [jobs, showCalendar]);
+
+  const sessionsByJob = useMemo(() => {
+    const map = new Map<string, ScheduleSession[]>();
+    for (const s of sessions) {
+      if (!map.has(s.jobId)) map.set(s.jobId, []);
+      map.get(s.jobId)!.push(s);
+    }
+    return map;
+  }, [sessions]);
 
   async function handleUpdate(phaseId: string, field: string, value: unknown) {
     try {
@@ -514,7 +579,7 @@ export default function ProjectManagementPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className={`mx-auto px-4 py-8 sm:px-6 lg:px-8 ${showCalendar ? "max-w-[1600px]" : "max-w-7xl"}`}>
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -555,15 +620,32 @@ export default function ProjectManagementPage() {
               </button>
             ))}
           </div>
-          {filteredJobs.length > 0 && (
+          <div className="flex items-center gap-3">
+            {filteredJobs.length > 0 && (
+              <button
+                type="button"
+                onClick={toggleAll}
+                className="text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors"
+              >
+                {allCollapsed ? "Expand All" : "Collapse All"}
+              </button>
+            )}
             <button
               type="button"
-              onClick={toggleAll}
-              className="text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors"
+              onClick={() => setShowCalendar((v) => !v)}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                showCalendar
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+              title={showCalendar ? "Hide scheduling panel" : "Show scheduling panel"}
             >
-              {allCollapsed ? "Expand All" : "Collapse All"}
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+              Schedule
             </button>
-          )}
+          </div>
         </div>
 
         {/* Job list */}
@@ -661,35 +743,173 @@ export default function ProjectManagementPage() {
                         </button>
                       </div>
                     ) : (
-                      <div className="border-t border-gray-100 px-4 py-3 space-y-3">
-                        {contracted.length > 0 && (
-                          <div className="space-y-2">
-                            {contractedBids.map((bid) => (
-                              <div key={bid}>
-                                {(hasMultipleBids || cos.length > 0) && (
-                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
-                                    {hasMultipleBids ? `Contracted Work — ${bid}` : "Contracted Work"}
-                                  </p>
-                                )}
-                                <PhaseTable phases={contractedByBid.get(bid)!} onUpdate={handleUpdate} />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {cos.length > 0 && (
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
-                              Change Orders
+                      <div className={`border-t border-gray-100 ${showCalendar ? "flex gap-0" : ""}`}>
+                        {/* Phase tables (left side when calendar on) */}
+                        <div className={`px-4 py-3 space-y-3 ${showCalendar ? "w-[55%] shrink-0 overflow-x-auto" : ""}`}>
+                          {contracted.length > 0 && (
+                            <div className="space-y-2">
+                              {contractedBids.map((bid) => (
+                                <div key={bid}>
+                                  {(hasMultipleBids || cos.length > 0) && (
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+                                      {hasMultipleBids ? `Contracted Work — ${bid}` : "Contracted Work"}
+                                    </p>
+                                  )}
+                                  <PhaseTable phases={contractedByBid.get(bid)!} onUpdate={handleUpdate} />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {cos.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+                                Change Orders
+                              </p>
+                              <PhaseTable phases={cos} onUpdate={handleUpdate} />
+                            </div>
+                          )}
+                          {fixturePhases.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+                                Fixtures
+                              </p>
+                              <PhaseTable phases={fixturePhases} onUpdate={handleUpdate} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Scheduling panel (right side) */}
+                        {showCalendar && (
+                          <div className="w-[45%] shrink-0 border-l border-gray-100 px-4 py-3 space-y-3 overflow-y-auto max-h-[600px]">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                              Schedule &amp; Sessions
                             </p>
-                            <PhaseTable phases={cos} onUpdate={handleUpdate} />
-                          </div>
-                        )}
-                        {fixturePhases.length > 0 && (
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
-                              Fixtures
-                            </p>
-                            <PhaseTable phases={fixturePhases} onUpdate={handleUpdate} />
+                            {jobPhases
+                              .filter((p) => p.subgrouping === "CONTRACTED WORK" || p.subgrouping === "CHANGE ORDER")
+                              .map((phase) => {
+                                const phaseSessions = (sessionsByJob.get(job.id) ?? [])
+                                  .filter((s) => s.costingPhaseId === phase.id && s.status !== "cancelled");
+                                const remaining = getRemainingHours(phase);
+                                const warning = getBudgetWarning(phase);
+                                const totalCapacity = phaseSessions.reduce((s, sess) => s + getSessionCapacity(sess), 0);
+                                const phaseAny = phase as unknown as Record<string, unknown>;
+                                const depEarliest = phaseAny.earliestStartDate as Timestamp | null | undefined;
+                                const depLatest = phaseAny.latestFinishDate as Timestamp | null | undefined;
+                                const depNote = phaseAny.dependencyNote as string | null | undefined;
+
+                                return (
+                                  <div key={phase.id} className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+                                    {/* Phase header */}
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-gray-900">{phase.label}</span>
+                                        <span className="text-[10px] text-gray-400">{phase.costCode}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1.5">
+                                        {warning !== "normal" && (
+                                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${BUDGET_WARNING_COLORS[warning]}`}>
+                                            {BUDGET_WARNING_LABELS[warning]}
+                                          </span>
+                                        )}
+                                        <span className="text-[10px] tabular-nums text-gray-500">
+                                          {Math.round(remaining)}h left
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Capacity badge if sessions exist */}
+                                    {phaseSessions.length > 0 && (
+                                      <CapacityBadge
+                                        sessionCapacity={totalCapacity}
+                                        remainingHours={remaining}
+                                        compact
+                                      />
+                                    )}
+
+                                    {/* Session cards */}
+                                    {phaseSessions.map((sess) => {
+                                      const start = sess.startDate?.toDate?.();
+                                      const end = sess.endDate?.toDate?.();
+                                      return (
+                                        <button
+                                          key={sess.id}
+                                          type="button"
+                                          onClick={() => setSessionDrawer({ open: true, session: sess })}
+                                          className={`w-full text-left rounded border px-2.5 py-1.5 text-xs transition-colors hover:bg-white ${
+                                            sess.status === "tentative" ? "border-dashed border-gray-300" : "border-gray-200 bg-white"
+                                          }`}
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-gray-700">
+                                              {start ? start.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}
+                                              {end && start && end.getTime() !== start.getTime()
+                                                ? ` – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                                                : ""}
+                                            </span>
+                                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${SESSION_STATUS_COLORS[sess.status]}`}>
+                                              {SESSION_STATUS_LABELS[sess.status]}
+                                            </span>
+                                          </div>
+                                          <div className="mt-0.5 flex items-center gap-2 text-gray-500">
+                                            <span>{sess.assignedCrew.length} crew</span>
+                                            {sess.sessionType !== "phase-work" && (
+                                              <span className="text-gray-400">{SESSION_TYPE_LABELS[sess.sessionType]}</span>
+                                            )}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+
+                                    {/* Add session button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setSessionDrawer({
+                                        open: true,
+                                        jobId: job.id,
+                                        jobName: job.jobName,
+                                        jobNumber: (job as unknown as Record<string, unknown>).jobNumber as string ?? "",
+                                        costingPhaseId: phase.id,
+                                      })}
+                                      className="w-full rounded border border-dashed border-gray-300 px-2.5 py-1.5 text-xs font-semibold text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                                    >
+                                      + Add Session
+                                    </button>
+
+                                    {/* Dependency window */}
+                                    <div className="space-y-1 pt-1 border-t border-gray-200">
+                                      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Dependency Window</p>
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                          <label className="text-[10px] text-gray-400">Earliest Start</label>
+                                          <input
+                                            type="date"
+                                            value={depEarliest && typeof depEarliest.toDate === "function" ? depEarliest.toDate().toISOString().slice(0, 10) : ""}
+                                            onChange={(e) => handleUpdate(phase.id, "earliestStartDate", e.target.value ? Timestamp.fromDate(new Date(e.target.value + "T00:00:00")) : null)}
+                                            className="block w-full rounded border border-gray-300 px-1.5 py-1 text-[11px] text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[10px] text-gray-400">Latest Finish</label>
+                                          <input
+                                            type="date"
+                                            value={depLatest && typeof depLatest.toDate === "function" ? depLatest.toDate().toISOString().slice(0, 10) : ""}
+                                            onChange={(e) => handleUpdate(phase.id, "latestFinishDate", e.target.value ? Timestamp.fromDate(new Date(e.target.value + "T00:00:00")) : null)}
+                                            className="block w-full rounded border border-gray-300 px-1.5 py-1 text-[11px] text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                          />
+                                        </div>
+                                      </div>
+                                      <input
+                                        key={phase.id + "-depnote"}
+                                        type="text"
+                                        defaultValue={depNote ?? ""}
+                                        onBlur={(e) => handleUpdate(phase.id, "dependencyNote", e.target.value.trim() || null)}
+                                        placeholder="Dependency note…"
+                                        className="block w-full rounded border border-gray-300 px-1.5 py-1 text-[11px] text-gray-700 placeholder:text-gray-300 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
                           </div>
                         )}
                       </div>
@@ -708,6 +928,17 @@ export default function ProjectManagementPage() {
           jobName={importJob.jobName}
           existingPhases={importExistingPhases}
           onClose={() => setImportJobId(null)}
+        />
+      )}
+
+      {sessionDrawer.open && (
+        <SessionFormDrawer
+          session={sessionDrawer.session ?? undefined}
+          jobId={sessionDrawer.jobId}
+          jobName={sessionDrawer.jobName}
+          jobNumber={sessionDrawer.jobNumber}
+          costingPhaseId={sessionDrawer.costingPhaseId}
+          onClose={() => setSessionDrawer({ open: false })}
         />
       )}
     </AppShell>

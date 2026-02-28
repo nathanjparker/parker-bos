@@ -239,7 +239,7 @@ export default function SessionFormDrawer({
   function selectJob(j: Job) {
     setJobId(j.id);
     setJobName(j.jobName);
-    setJobNumber((j as Record<string, unknown>).jobNumber as string ?? "");
+    setJobNumber((j as unknown as Record<string, unknown>).jobNumber as string ?? "");
     setJobSearch("");
     setCostingPhaseId("");
     setCostCode("");
