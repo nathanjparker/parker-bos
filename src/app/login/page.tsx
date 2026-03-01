@@ -1,19 +1,22 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  browserPopupRedirectResolver,
+  getRedirectResult,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  signOut,
   type AuthError,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { checkParkerAccess, AUTH_ERROR_MESSAGES, type AuthError as AuthCheckError } from "@/lib/auth-check";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,22 +24,83 @@ export default function LoginPage() {
   const [googleSigningIn, setGoogleSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const urlError = searchParams.get("error") as AuthCheckError | null;
+  const accessError = urlError && AUTH_ERROR_MESSAGES[urlError] ? AUTH_ERROR_MESSAGES[urlError] : null;
+
+  // Handle return from Google redirect sign-in. Must run once and not be skipped by
+  // React Strict Mode cleanup, or we never navigate and the user stays on login.
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) router.replace("/dashboard");
-      else setChecking(false);
+    let cancelled = false;
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (!result?.user) {
+          if (!cancelled) setChecking(false);
+          return;
+        }
+        if (!cancelled) setGoogleSigningIn(true);
+        const ok = await validateAndRedirect(result.user);
+        if (!cancelled) {
+          setGoogleSigningIn(false);
+          setChecking(false);
+        }
+        // Always navigate on success so we don't get stuck when effect cleanup runs (e.g. Strict Mode).
+        if (ok) router.replace("/dashboard");
+      })
+      .catch(async (err: unknown) => {
+        if (cancelled) return;
+        const e = err as Partial<AuthError> | undefined;
+        if (e?.code === "auth/credential-already-in-use") {
+          setError("This Google account is already linked to another sign-in method.");
+        } else if (e?.code) {
+          setError(`Google sign-in failed (${e.code}). Try again or use email/password instead.`);
+        } else {
+          setError("Google sign-in failed. Try again or use email/password instead.");
+        }
+        setGoogleSigningIn(false);
+        setChecking(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setChecking(false);
+        return;
+      }
+      const result = await checkParkerAccess(user);
+      if (!result.ok) {
+        await signOut(auth);
+        setChecking(false);
+        return;
+      }
+      router.replace("/dashboard");
     });
 
     return () => unsub();
   }, [router]);
+
+  async function validateAndRedirect(user: import("firebase/auth").User): Promise<boolean> {
+    const result = await checkParkerAccess(user);
+    if (!result.ok) {
+      await signOut(auth);
+      setError(AUTH_ERROR_MESSAGES[result.error]);
+      return false;
+    }
+    return true;
+  }
 
   async function handleEmailSignIn(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setEmailSigningIn(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-      router.replace("/dashboard");
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (await validateAndRedirect(cred.user)) {
+        router.replace("/dashboard");
+      }
     } catch (err) {
       const e = err as Partial<AuthError> | undefined;
       switch (e?.code) {
@@ -55,30 +119,13 @@ export default function LoginPage() {
     }
   }
 
-  async function handleGoogleSignIn() {
+  function handleGoogleSignIn() {
     setError(null);
     setGoogleSigningIn(true);
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      await signInWithPopup(auth, provider, browserPopupRedirectResolver);
-      router.replace("/dashboard");
-    } catch (err) {
-      const e = err as Partial<AuthError> | undefined;
-      if (e?.code === "auth/popup-closed-by-user") {
-        setError("Google sign-in was cancelled before it completed.");
-      } else if (e?.code === "auth/popup-blocked") {
-        setError(
-          "Your browser blocked the Google sign-in popup. Allow popups for this site, or use email and password below."
-        );
-      } else if (e?.code) {
-        setError(`Google sign-in failed (${e.code}). Try again or use email/password instead.`);
-      } else {
-        setError("Google sign-in failed. Try again or use email/password instead.");
-      }
-    } finally {
-      setGoogleSigningIn(false);
-    }
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    signInWithRedirect(auth, provider);
+    // Page will navigate away to Google; getRedirectResult handles the return.
   }
 
   return (
@@ -98,6 +145,12 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-8 space-y-4">
+          {accessError && !error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {accessError}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleGoogleSignIn}

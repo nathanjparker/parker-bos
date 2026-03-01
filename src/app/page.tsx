@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
+import { checkParkerAccess } from "@/lib/auth-check";
 
 export default function Home() {
   const router = useRouter();
@@ -17,8 +18,18 @@ export default function Home() {
 
   useEffect(() => {
     if (!auth) return;
-    const unsub = onAuthStateChanged(auth, (user) => {
-      router.replace(user ? "/dashboard" : "/login");
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+      const result = await checkParkerAccess(user);
+      if (!result.ok) {
+        await signOut(auth);
+        router.replace(`/login?error=${result.error}`);
+        return;
+      }
+      router.replace("/dashboard");
     });
     return () => unsub();
   }, [auth, router]);

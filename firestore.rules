@@ -1,9 +1,192 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+
+    // ========== HELPER FUNCTIONS ==========
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isParkerEmail() {
+      return isAuthenticated() &&
+             request.auth.token.email.matches('.*@parkerservices[.]co$');
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function getUserRole() {
+      return getUserData().appRole;
+    }
+
+    function isActive() {
+      return isParkerEmail() && getUserData().isActive == true;
+    }
+
+    function isAdmin() {
+      return isActive() && getUserRole() == 'admin';
+    }
+
+    function isOfficeOrAdmin() {
+      return isActive() && getUserRole() in ['admin', 'office'];
+    }
+
+    // For local dev: allow reads when auth has custom claim dev == true (set via Admin SDK).
+    function isDev() {
+      return request.auth != null && request.auth.token.dev == true;
+    }
+
+    // ========== USERS COLLECTION ==========
+    match /users/{uid} {
+      allow read: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ========== CORE COLLECTIONS ==========
+
+    match /companies/{docId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    match /contacts/{docId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    match /employees/{docId} {
+      allow read: if isAdmin() || isOfficeOrAdmin() ||
+                     (isActive() && resource.data.authUid == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    match /jurisdictions/{docId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    // ========== JOBS + SUBCOLLECTIONS ==========
+
+    match /Jobs/{jobId} {
+      allow read: if isActive() || isDev();
+      allow create, update: if isOfficeOrAdmin();
+      allow delete: if isAdmin();
+
+      match /activity/{actId} {
+        allow read: if isActive();
+        allow write: if isActive();
+      }
+
+      match /changeOrders/{coId} {
+        allow read: if isActive();
+        allow create: if isActive();
+        allow update, delete: if isOfficeOrAdmin();
+      }
+
+      match /purchaseOrders/{poId} {
+        allow read: if isActive();
+        allow write: if isOfficeOrAdmin();
+      }
+
+      match /inventory/{itemId} {
+        allow read: if isActive();
+        allow write: if isOfficeOrAdmin();
+      }
+
+      match /invoices/{invId} {
+        allow read: if isActive();
+        allow write: if isOfficeOrAdmin();
+      }
+    }
+
+    // ========== ESTIMATES ==========
+
+    match /estimates/{estId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    match /estimateLines/{lineId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    match /constructionFixtures/{fixId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    // ========== JOB FIXTURES ==========
+
+    match /jobFixtures/{fixId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    // ========== SCHEDULING ==========
+
+    match /scheduleSessions/{sessionId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    match /costingPhases/{phaseId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    // ========== TIME TRACKING (future) ==========
+
+    match /timeEntries/{entryId} {
+      allow read: if isActive();
+      allow create: if isActive();
+      allow update: if isActive() &&
+                       (resource.data.employeeUid == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ========== SETTINGS (admin only writes) ==========
+
+    match /costCodes/{codeId} {
+      allow read: if isActive();
+      allow write: if isAdmin();
+    }
+
+    match /exclusionLibrary/{exclId} {
+      allow read: if isActive();
+      allow write: if isAdmin();
+    }
+
+    match /specSheetLibrary/{specId} {
+      allow read: if isActive();
+      allow write: if isOfficeOrAdmin();
+    }
+
+    // ========== FILES ==========
+
+    match /files/{fileId} {
+      allow read: if isActive();
+      allow create: if isActive();
+      allow update, delete: if isOfficeOrAdmin();
+    }
+
+    // ========== CHANGE ORDERS (top-level if used) ==========
+
+    match /changeOrders/{coId} {
+      allow read: if isActive() || isDev();
+      allow create: if isActive();
+      allow update, delete: if isOfficeOrAdmin();
+    }
+
+    // ========== FORM SUBMISSIONS (field team) ==========
+
+    match /formSubmissions/{subId} {
+      allow read: if isOfficeOrAdmin();
+      allow create: if isActive();
+      allow update, delete: if isAdmin();
     }
   }
 }

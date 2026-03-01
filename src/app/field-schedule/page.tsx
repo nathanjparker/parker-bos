@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged, type User } from "firebase/auth";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import {
   collection,
   getDocs,
@@ -10,6 +10,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db, getFirebaseAuth } from "@/lib/firebase";
+import { checkParkerAccess } from "@/lib/auth-check";
 import FieldScheduleView from "@/components/calendar/FieldScheduleView";
 import SessionCompletionModal from "@/components/calendar/SessionCompletionModal";
 import type { AccessLevel } from "@/types/employees";
@@ -32,9 +33,15 @@ export default function FieldSchedulePage() {
       router.replace("/login");
       return;
     }
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
         router.replace("/login");
+        return;
+      }
+      const result = await checkParkerAccess(u);
+      if (!result.ok) {
+        await signOut(auth);
+        router.replace(`/login?error=${result.error}`);
         return;
       }
       setUser(u);

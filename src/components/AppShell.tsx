@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
+import { checkParkerAccess } from "@/lib/auth-check";
 
 type NavChild = { label: string; href: string };
 type NavItem = {
@@ -60,9 +61,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       router.replace("/login");
       return;
     }
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
         router.replace("/login");
+        return;
+      }
+      const result = await checkParkerAccess(u);
+      if (!result.ok) {
+        await signOut(auth);
+        router.replace(`/login?error=${result.error}`);
         return;
       }
       setUser(u);

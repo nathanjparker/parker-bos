@@ -51,6 +51,10 @@ export interface Job {
   pmName?: string;
   superintendentId?: string;
   superintendentName?: string;
+  // GC contact phones — denormalized for field team tap-to-call
+  estimatorPhone?: string;
+  projectManagerPhone?: string;
+  superintendentPhone?: string;
   jurisdictionId?: string;
   jurisdictionName?: string;
   originalContractValue?: number;
