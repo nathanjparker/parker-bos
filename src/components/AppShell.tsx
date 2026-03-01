@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { onAuthStateChanged, signOut, type User } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/firebase";
-import { checkParkerAccess } from "@/lib/auth-check";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useAuth } from "@/lib/AuthContext";
 
 type NavChild = { label: string; href: string };
 type NavItem = {
@@ -42,44 +42,19 @@ const NAV_ITEMS: NavItem[] = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-  const [checking, setChecking] = useState(true);
+  const { appUser, loading } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedNav, setExpandedNav] = useState<string | null>(null);
 
-  const auth = useMemo(() => {
-    try {
-      return getFirebaseAuth();
-    } catch {
-      return null;
-    }
-  }, []);
-
+  // Redirect to login only after auth has fully resolved
   useEffect(() => {
-    if (!auth) {
+    if (!loading && !appUser) {
       router.replace("/login");
-      return;
     }
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        router.replace("/login");
-        return;
-      }
-      const result = await checkParkerAccess(u);
-      if (!result.ok) {
-        await signOut(auth);
-        router.replace(`/login?error=${result.error}`);
-        return;
-      }
-      setUser(u);
-      setChecking(false);
-    });
-    return () => unsub();
-  }, [auth, router]);
+  }, [loading, appUser, router]);
 
   async function handleSignOut() {
-    if (!auth) return;
     setSigningOut(true);
     try {
       await signOut(auth);
@@ -89,7 +64,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   }
 
-  if (checking) {
+  if (loading || !appUser) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
@@ -188,7 +163,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* User */}
       <div className="border-t border-gray-800 px-3 py-3">
-        <p className="truncate text-xs text-gray-400">{user?.email}</p>
+        <p className="truncate text-xs text-gray-400">{appUser.firebaseUser.email}</p>
         <button
           type="button"
           onClick={handleSignOut}

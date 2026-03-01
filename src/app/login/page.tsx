@@ -5,127 +5,118 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   getRedirectResult,
   GoogleAuthProvider,
-  onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithRedirect,
-  signOut,
   type AuthError,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { checkParkerAccess, AUTH_ERROR_MESSAGES, type AuthError as AuthCheckError } from "@/lib/auth-check";
+import { AUTH_ERROR_MESSAGES, type AuthError as AuthCheckError } from "@/lib/auth-check";
+import { useAuth } from "@/lib/AuthContext";
 
 function LoginInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [checking, setChecking] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { appUser, loading: authLoading, authError: contextAuthError } = useAuth();
+
+  // True until getRedirectResult resolves — prevents the form from flashing
+  // while Firebase is still processing a returning Google redirect.
+  const [redirectProcessing, setRedirectProcessing] = useState(true);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [emailSigningIn, setEmailSigningIn] = useState(false);
   const [googleSigningIn, setGoogleSigningIn] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const urlError = searchParams.get("error") as AuthCheckError | null;
-  const accessError = urlError && AUTH_ERROR_MESSAGES[urlError] ? AUTH_ERROR_MESSAGES[urlError] : null;
+  // Redirect to dashboard once auth is fully resolved and a valid user exists.
+  // Never redirect while loading — that's the root cause of the loop.
+  useEffect(() => {
+    if (!authLoading && !redirectProcessing && appUser) {
+      router.replace("/dashboard");
+    }
+  }, [authLoading, redirectProcessing, appUser, router]);
 
-  // Handle return from Google redirect sign-in. Must run once and not be skipped by
-  // React Strict Mode cleanup, or we never navigate and the user stays on login.
+  // Consume any pending Google redirect result.
+  // The actual sign-in state is handled by AuthContext's onAuthStateChanged.
+  // We call this to: (a) detect errors, (b) know when processing is done.
   useEffect(() => {
     let cancelled = false;
     getRedirectResult(auth)
-      .then(async (result) => {
-        if (!result?.user) {
-          if (!cancelled) setChecking(false);
-          return;
-        }
-        if (!cancelled) setGoogleSigningIn(true);
-        const ok = await validateAndRedirect(result.user);
-        if (!cancelled) {
-          setGoogleSigningIn(false);
-          setChecking(false);
-        }
-        // Always navigate on success so we don't get stuck when effect cleanup runs (e.g. Strict Mode).
-        if (ok) router.replace("/dashboard");
+      .then(() => {
+        if (!cancelled) setRedirectProcessing(false);
       })
-      .catch(async (err: unknown) => {
+      .catch((err: unknown) => {
         if (cancelled) return;
         const e = err as Partial<AuthError> | undefined;
         if (e?.code === "auth/credential-already-in-use") {
-          setError("This Google account is already linked to another sign-in method.");
+          setLocalError("This Google account is already linked to another sign-in method.");
         } else if (e?.code) {
-          setError(`Google sign-in failed (${e.code}). Try again or use email/password instead.`);
+          setLocalError(`Google sign-in failed (${e.code}). Try again or use email/password instead.`);
         } else {
-          setError("Google sign-in failed. Try again or use email/password instead.");
+          setLocalError("Google sign-in failed. Try again or use email/password instead.");
         }
         setGoogleSigningIn(false);
-        setChecking(false);
+        setRedirectProcessing(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setChecking(false);
-        return;
-      }
-      const result = await checkParkerAccess(user);
-      if (!result.ok) {
-        await signOut(auth);
-        setChecking(false);
-        return;
-      }
-      router.replace("/dashboard");
-    });
+  // URL error param (set by redirect from protected pages in edge cases)
+  const urlError = searchParams.get("error") as AuthCheckError | null;
 
-    return () => unsub();
-  }, [router]);
+  // Access error to display above the Google button (context error takes priority)
+  const accessErrorMessage =
+    (contextAuthError && AUTH_ERROR_MESSAGES[contextAuthError]) ||
+    (urlError && AUTH_ERROR_MESSAGES[urlError]) ||
+    null;
 
-  async function validateAndRedirect(user: import("firebase/auth").User): Promise<boolean> {
-    const result = await checkParkerAccess(user);
-    if (!result.ok) {
-      await signOut(auth);
-      setError(AUTH_ERROR_MESSAGES[result.error]);
-      return false;
-    }
-    return true;
+  // Show a full-screen spinner while auth state or redirect result is being resolved.
+  // Nothing should redirect while this is true.
+  const isLoading = authLoading || redirectProcessing;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
+          <p className="mt-3 text-sm text-gray-500">Signing in…</p>
+        </div>
+      </div>
+    );
   }
 
   async function handleEmailSignIn(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setLocalError(null);
     setEmailSigningIn(true);
     try {
-      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
-      if (await validateAndRedirect(cred.user)) {
-        router.replace("/dashboard");
-      }
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      // AuthContext's onAuthStateChanged will fire, validate, and set appUser.
+      // The useEffect above will then redirect to /dashboard.
     } catch (err) {
       const e = err as Partial<AuthError> | undefined;
       switch (e?.code) {
         case "auth/user-not-found":
         case "auth/wrong-password":
-          setError("Invalid email or password. This page is for existing admin accounts only.");
+          setLocalError("Invalid email or password. This page is for existing admin accounts only.");
           break;
         case "auth/too-many-requests":
-          setError("Too many failed attempts. Try again later or use a different account.");
+          setLocalError("Too many failed attempts. Try again later or use a different account.");
           break;
         default:
-          setError("Email sign-in failed. Check your credentials and try again.");
+          setLocalError("Email sign-in failed. Check your credentials and try again.");
       }
-    } finally {
       setEmailSigningIn(false);
     }
   }
 
   function handleGoogleSignIn() {
-    setError(null);
+    setLocalError(null);
     setGoogleSigningIn(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
     signInWithRedirect(auth, provider);
-    // Page will navigate away to Google; getRedirectResult handles the return.
+    // Page navigates away to Google; getRedirectResult handles the return.
   }
 
   return (
@@ -145,16 +136,16 @@ function LoginInner() {
         </div>
 
         <div className="mt-8 space-y-4">
-          {accessError && !error && (
+          {accessErrorMessage && !localError && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {accessError}
+              {accessErrorMessage}
             </div>
           )}
 
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            disabled={checking || googleSigningIn}
+            disabled={googleSigningIn || emailSigningIn}
             className="w-full inline-flex items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
           >
             <svg
@@ -180,12 +171,12 @@ function LoginInner() {
               />
               <path fill="none" d="M1.5 1.5h45v45h-45z" />
             </svg>
-            {googleSigningIn ? "Signing in with Google…" : "Continue with Google"}
+            {googleSigningIn ? "Redirecting to Google…" : "Continue with Google"}
           </button>
 
-          {error ? (
+          {localError ? (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
+              {localError}
             </div>
           ) : null}
 
@@ -226,7 +217,7 @@ function LoginInner() {
 
             <button
               type="submit"
-              disabled={checking || emailSigningIn}
+              disabled={emailSigningIn || googleSigningIn}
               className="mt-2 w-full inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             >
               {emailSigningIn ? "Signing in…" : "Sign in"}

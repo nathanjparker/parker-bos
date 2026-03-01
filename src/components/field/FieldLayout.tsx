@@ -1,55 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/firebase";
-import { checkParkerAccess } from "@/lib/auth-check";
-import { getAppRole } from "@/lib/getAppRole";
+import { useAuth } from "@/lib/AuthContext";
 import { FieldProvider } from "@/lib/fieldContext";
 import BottomNav from "@/components/field/BottomNav";
 import FAB from "@/components/field/FAB";
 
 export default function FieldLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
-
-  const auth = useMemo(() => {
-    try {
-      return getFirebaseAuth();
-    } catch {
-      return null;
-    }
-  }, []);
+  const { appUser, loading } = useAuth();
 
   useEffect(() => {
-    if (!auth) {
+    if (loading) return;
+    if (!appUser) {
       router.replace("/login");
       return;
     }
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        router.replace("/login");
-        return;
-      }
-      const result = await checkParkerAccess(u);
-      if (!result.ok) {
-        await signOut(auth);
-        router.replace(`/login?error=${result.error}`);
-        return;
-      }
-      // Redirect pure office users to the office dashboard
-      const role = await getAppRole(u.uid);
-      if (role === "office") {
-        router.replace("/dashboard");
-        return;
-      }
-      setChecking(false);
-    });
-    return () => unsub();
-  }, [auth, router]);
+    // Pure office users belong in the office dashboard, not the field interface
+    if (appUser.appRole === "office") {
+      router.replace("/dashboard");
+    }
+  }, [loading, appUser, router]);
 
-  if (checking) {
+  if (loading || !appUser || appUser.appRole === "office") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0F1117]">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#2A2E3B] border-t-[#3B82F6]" />

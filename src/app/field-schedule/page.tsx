@@ -2,16 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import {
   collection,
   getDocs,
   query,
   where,
 } from "firebase/firestore";
-import { db, getFirebaseAuth } from "@/lib/firebase";
-import { checkParkerAccess } from "@/lib/auth-check";
-import { getAppRole } from "@/lib/getAppRole";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/lib/AuthContext";
 import FieldScheduleView from "@/components/calendar/FieldScheduleView";
 import SessionCompletionModal from "@/components/calendar/SessionCompletionModal";
 import type { AccessLevel } from "@/types/employees";
@@ -19,83 +17,69 @@ import type { ScheduleSession } from "@/types/scheduling";
 
 export default function FieldSchedulePage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const { appUser, loading: authLoading } = useAuth();
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [accessLevel, setAccessLevel] = useState<AccessLevel | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [employeeLoading, setEmployeeLoading] = useState(false);
   const [completionSession, setCompletionSession] = useState<ScheduleSession | null>(null);
 
-  // Auth check
+  const isAdmin = appUser?.appRole === "admin";
+
+  // Redirect to login when not authenticated (after auth resolves)
   useEffect(() => {
-    let auth;
-    try {
-      auth = getFirebaseAuth();
-    } catch {
+    if (!authLoading && !appUser) {
       router.replace("/login");
-      return;
     }
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        router.replace("/login");
-        return;
-      }
-      const result = await checkParkerAccess(u);
-      if (!result.ok) {
-        await signOut(auth);
-        router.replace(`/login?error=${result.error}`);
-        return;
-      }
-      setUser(u);
-    });
-    return () => unsub();
-  }, [router]);
+  }, [authLoading, appUser, router]);
 
   // Map auth user → employee record
   useEffect(() => {
-    if (!user) return;
+    if (!appUser) return;
+
+    setEmployeeLoading(true);
 
     async function resolveEmployee() {
-      const role = await getAppRole(user!.uid);
-      setIsAdmin(role === "admin");
+      const user = appUser!.firebaseUser;
 
       // Try matching by authUid first
       const byUid = query(
         collection(db, "employees"),
-        where("authUid", "==", user!.uid)
+        where("authUid", "==", user.uid)
       );
       const uidSnap = await getDocs(byUid);
       if (!uidSnap.empty) {
         const data = uidSnap.docs[0].data();
         setEmployeeId(uidSnap.docs[0].id);
         setAccessLevel((data.accessLevel as AccessLevel) ?? "office");
-        setLoading(false);
+        setEmployeeLoading(false);
         return;
       }
 
       // Fall back to matching by email
-      if (user!.email) {
+      if (user.email) {
         const byEmail = query(
           collection(db, "employees"),
-          where("email", "==", user!.email)
+          where("email", "==", user.email)
         );
         const emailSnap = await getDocs(byEmail);
         if (!emailSnap.empty) {
           const data = emailSnap.docs[0].data();
           setEmployeeId(emailSnap.docs[0].id);
           setAccessLevel((data.accessLevel as AccessLevel) ?? "office");
-          setLoading(false);
+          setEmployeeLoading(false);
           return;
         }
       }
 
       // No employee record found
       setEmployeeId(null);
-      setLoading(false);
+      setEmployeeLoading(false);
     }
 
     resolveEmployee();
-  }, [user]);
+  }, [appUser]);
+
+  const loading = authLoading || employeeLoading;
 
   if (loading) {
     return (
