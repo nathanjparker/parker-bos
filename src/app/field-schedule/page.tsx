@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db, getFirebaseAuth } from "@/lib/firebase";
 import { checkParkerAccess } from "@/lib/auth-check";
+import { getAppRole } from "@/lib/getAppRole";
 import FieldScheduleView from "@/components/calendar/FieldScheduleView";
 import SessionCompletionModal from "@/components/calendar/SessionCompletionModal";
 import type { AccessLevel } from "@/types/employees";
@@ -22,6 +23,7 @@ export default function FieldSchedulePage() {
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [accessLevel, setAccessLevel] = useState<AccessLevel | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [completionSession, setCompletionSession] = useState<ScheduleSession | null>(null);
 
   // Auth check
@@ -54,6 +56,9 @@ export default function FieldSchedulePage() {
     if (!user) return;
 
     async function resolveEmployee() {
+      const role = await getAppRole(user!.uid);
+      setIsAdmin(role === "admin");
+
       // Try matching by authUid first
       const byUid = query(
         collection(db, "employees"),
@@ -120,7 +125,7 @@ export default function FieldSchedulePage() {
     );
   }
 
-  if (accessLevel === "office") {
+  if (accessLevel === "office" && !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="mx-auto w-full max-w-2xl px-4 py-8 text-center">
