@@ -30,7 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
+      console.log("[AuthContext] onAuthStateChanged fired. user=", user?.email ?? null);
+
       if (!user) {
+        console.log("[AuthContext] No user — setting loading=false, appUser=null");
         setAppUser(null);
         setLoading(false);
         return;
@@ -38,9 +41,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Re-enter loading while we validate — prevents stale UI between sign-ins
       setLoading(true);
+      console.log("[AuthContext] User found, validating access...");
 
       const result = await checkParkerAccess(user);
+      console.log("[AuthContext] checkParkerAccess result=", result);
       if (!result.ok) {
+        console.log("[AuthContext] Access denied:", result.error, "— signing out");
         setAuthError(result.error);
         setAppUser(null);
         setLoading(false);
@@ -50,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const role = await getAppRole(user.uid);
+      console.log("[AuthContext] Access granted. role=", role, "— setting appUser, loading=false");
       setAuthError(null);
       setAppUser({ firebaseUser: user, appRole: role });
       setLoading(false);

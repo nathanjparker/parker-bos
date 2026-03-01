@@ -27,10 +27,15 @@ function LoginInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // Log every render so we can see the state sequence
+  console.log("[Login] render — authLoading=", authLoading, "redirectProcessing=", redirectProcessing, "appUser=", appUser?.firebaseUser.email ?? null);
+
   // Redirect to dashboard once auth is fully resolved and a valid user exists.
   // Never redirect while loading — that's the root cause of the loop.
   useEffect(() => {
+    console.log("[Login] redirect-check effect — authLoading=", authLoading, "redirectProcessing=", redirectProcessing, "appUser=", appUser?.firebaseUser.email ?? null);
     if (!authLoading && !redirectProcessing && appUser) {
+      console.log("[Login] Redirecting to: /dashboard");
       router.replace("/dashboard");
     }
   }, [authLoading, redirectProcessing, appUser, router]);
@@ -39,14 +44,17 @@ function LoginInner() {
   // The actual sign-in state is handled by AuthContext's onAuthStateChanged.
   // We call this to: (a) detect errors, (b) know when processing is done.
   useEffect(() => {
+    console.log("[Login] getRedirectResult effect mounted");
     let cancelled = false;
     getRedirectResult(auth)
-      .then(() => {
+      .then((result) => {
+        console.log("[Login] getRedirectResult resolved. user=", result?.user?.email ?? null);
         if (!cancelled) setRedirectProcessing(false);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
         const e = err as Partial<AuthError> | undefined;
+        console.log("[Login] getRedirectResult error:", e?.code);
         if (e?.code === "auth/credential-already-in-use") {
           setLocalError("This Google account is already linked to another sign-in method.");
         } else if (e?.code) {
@@ -58,6 +66,7 @@ function LoginInner() {
         setRedirectProcessing(false);
       });
     return () => {
+      console.log("[Login] getRedirectResult effect cleanup (cancelled=true)");
       cancelled = true;
     };
   }, []);
