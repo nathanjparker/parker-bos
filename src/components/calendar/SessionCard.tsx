@@ -30,9 +30,20 @@ interface Props {
   session: ScheduleSession;
   colorIndex: number;
   onClick: () => void;
+  // Drag & drop
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  isDragging?: boolean;
 }
 
-export default function SessionCard({ session, colorIndex, onClick }: Props) {
+export default function SessionCard({
+  session,
+  colorIndex,
+  onClick,
+  onDragStart,
+  onDragEnd,
+  isDragging,
+}: Props) {
   if (session.status === "cancelled") return null;
 
   const color = JOB_COLORS[colorIndex % JOB_COLORS.length];
@@ -51,17 +62,24 @@ export default function SessionCard({ session, colorIndex, onClick }: Props) {
       ? session.phaseLabel
       : SESSION_TYPE_LABELS[session.sessionType];
 
+  const baseColor = isCompleted
+    ? "bg-gray-50 border-gray-200 text-gray-400"
+    : isTentative
+    ? `${color.bg} border-dashed ${color.border}`
+    : `${color.bg} ${color.border}`;
+
+  const opacityClass = isDragging ? "opacity-40" : isTentative ? "opacity-80" : "";
+  const dragClass = onDragStart ? "cursor-grab active:cursor-grabbing" : "";
+  const ringClass = isDragging ? "ring-2 ring-blue-400 ring-inset" : "";
+
   return (
     <button
       type="button"
+      draggable={!!onDragStart}
       onClick={onClick}
-      className={`w-full text-left rounded px-1.5 py-1 text-[10px] leading-tight border transition-colors truncate ${
-        isCompleted
-          ? "bg-gray-50 border-gray-200 text-gray-400"
-          : isTentative
-          ? `${color.bg} border-dashed ${color.border} opacity-80`
-          : `${color.bg} ${color.border}`
-      } hover:shadow-sm`}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      className={`w-full text-left rounded px-1.5 py-1 text-[10px] leading-tight border transition-colors truncate hover:shadow-sm ${baseColor} ${opacityClass} ${ringClass} ${dragClass}`}
     >
       <div className={`font-semibold truncate ${isCompleted ? "text-gray-500" : color.text}`}>
         {session.jobName}
