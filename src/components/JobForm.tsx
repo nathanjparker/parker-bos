@@ -22,6 +22,7 @@ import ContactPicker from "@/components/ContactPicker";
 type TeamField = {
   id: string;
   name: string;
+  phone?: string;
 };
 
 const PHASES_WITH_BID_DUE: ProjectPhase[] = ["Lead", "Bidding"];
@@ -86,11 +87,12 @@ function jobToForm(job: Job): FormValues {
     bidDueDate: job.bidDueDate
       ? (job.bidDueDate as Timestamp).toDate().toISOString().slice(0, 10)
       : "",
-    estimator: { id: job.estimatorId ?? "", name: job.estimatorName ?? "" },
-    pm: { id: job.pmId ?? "", name: job.pmName ?? "" },
+    estimator: { id: job.estimatorId ?? "", name: job.estimatorName ?? "", phone: job.estimatorPhone },
+    pm: { id: job.pmId ?? "", name: job.pmName ?? "", phone: job.projectManagerPhone },
     superintendent: {
       id: job.superintendentId ?? "",
       name: job.superintendentName ?? "",
+      phone: job.superintendentPhone,
     },
   };
 }
@@ -145,8 +147,8 @@ export default function JobForm({
     setValues((v) => ({ ...v, [field]: value }));
   }
 
-  function setTeam(field: "estimator" | "pm" | "superintendent", id: string, name: string) {
-    setValues((v) => ({ ...v, [field]: { id, name } }));
+  function setTeam(field: "estimator" | "pm" | "superintendent", id: string, name: string, phone?: string) {
+    setValues((v) => ({ ...v, [field]: { id, name, phone } }));
   }
 
   function handleGcChange(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -198,10 +200,13 @@ export default function JobForm({
         : undefined,
       estimatorId: values.estimator.id || undefined,
       estimatorName: values.estimator.name || undefined,
+      estimatorPhone: values.estimator.phone || undefined,
       pmId: values.pm.id || undefined,
       pmName: values.pm.name || undefined,
+      projectManagerPhone: values.pm.phone || undefined,
       superintendentId: values.superintendent.id || undefined,
       superintendentName: values.superintendent.name || undefined,
+      superintendentPhone: values.superintendent.phone || undefined,
     };
 
     try {
@@ -395,19 +400,19 @@ export default function JobForm({
           <ContactPicker
             label="Estimator"
             value={values.estimator.id}
-            onChange={(id, name) => setTeam("estimator", id, name)}
+            onChange={(id, name, phone) => setTeam("estimator", id, name, phone)}
             placeholder="Select estimator"
           />
           <ContactPicker
             label="Project Manager"
             value={values.pm.id}
-            onChange={(id, name) => setTeam("pm", id, name)}
+            onChange={(id, name, phone) => setTeam("pm", id, name, phone)}
             placeholder="Select PM"
           />
           <ContactPicker
             label="Superintendent"
             value={values.superintendent.id}
-            onChange={(id, name) => setTeam("superintendent", id, name)}
+            onChange={(id, name, phone) => setTeam("superintendent", id, name, phone)}
             placeholder="Select super"
           />
         </div>

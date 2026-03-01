@@ -8,7 +8,7 @@ import { contactDisplayName, type Contact } from "@/types/companies";
 type Props = {
   label: string;
   value: string; // contactId or ""
-  onChange: (contactId: string, contactName: string) => void;
+  onChange: (contactId: string, contactName: string, phone?: string) => void;
   placeholder?: string;
 };
 
@@ -72,7 +72,7 @@ export default function ContactPicker({
 
   function selectContact(c: Contact) {
     const name = contactDisplayName(c);
-    onChange(c.id, name);
+    onChange(c.id, name, c.phone);
     setSearch("");
     setOpen(false);
   }
