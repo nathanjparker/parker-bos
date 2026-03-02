@@ -3,10 +3,9 @@
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  getRedirectResult,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
-  signInWithRedirect,
+  signInWithPopup,
   type AuthError,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -18,9 +17,6 @@ function LoginInner() {
   const searchParams = useSearchParams();
   const { appUser, loading: authLoading, authError: contextAuthError } = useAuth();
 
-  // True until getRedirectResult resolves — prevents the form from flashing
-  // while Firebase is still processing a returning Google redirect.
-  const [redirectProcessing, setRedirectProcessing] = useState(true);
   const [localError, setLocalError] = useState<string | null>(null);
   const [emailSigningIn, setEmailSigningIn] = useState(false);
   const [googleSigningIn, setGoogleSigningIn] = useState(false);
@@ -28,48 +24,17 @@ function LoginInner() {
   const [password, setPassword] = useState("");
 
   // Log every render so we can see the state sequence
-  console.log("[Login] render — authLoading=", authLoading, "redirectProcessing=", redirectProcessing, "appUser=", appUser?.firebaseUser.email ?? null);
+  console.log("[Login] render — authLoading=", authLoading, "appUser=", appUser?.firebaseUser.email ?? null);
 
   // Redirect to dashboard once auth is fully resolved and a valid user exists.
-  // Never redirect while loading — that's the root cause of the loop.
+  // Never redirect while authLoading is true.
   useEffect(() => {
-    console.log("[Login] redirect-check effect — authLoading=", authLoading, "redirectProcessing=", redirectProcessing, "appUser=", appUser?.firebaseUser.email ?? null);
-    if (!authLoading && !redirectProcessing && appUser) {
+    console.log("[Login] redirect-check effect — authLoading=", authLoading, "appUser=", appUser?.firebaseUser.email ?? null);
+    if (!authLoading && appUser) {
       console.log("[Login] Redirecting to: /dashboard");
       router.replace("/dashboard");
     }
-  }, [authLoading, redirectProcessing, appUser, router]);
-
-  // Consume any pending Google redirect result.
-  // The actual sign-in state is handled by AuthContext's onAuthStateChanged.
-  // We call this to: (a) detect errors, (b) know when processing is done.
-  useEffect(() => {
-    console.log("[Login] getRedirectResult effect mounted");
-    let cancelled = false;
-    getRedirectResult(auth)
-      .then((result) => {
-        console.log("[Login] getRedirectResult resolved. user=", result?.user?.email ?? null);
-        if (!cancelled) setRedirectProcessing(false);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        const e = err as Partial<AuthError> | undefined;
-        console.log("[Login] getRedirectResult error:", e?.code);
-        if (e?.code === "auth/credential-already-in-use") {
-          setLocalError("This Google account is already linked to another sign-in method.");
-        } else if (e?.code) {
-          setLocalError(`Google sign-in failed (${e.code}). Try again or use email/password instead.`);
-        } else {
-          setLocalError("Google sign-in failed. Try again or use email/password instead.");
-        }
-        setGoogleSigningIn(false);
-        setRedirectProcessing(false);
-      });
-    return () => {
-      console.log("[Login] getRedirectResult effect cleanup (cancelled=true)");
-      cancelled = true;
-    };
-  }, []);
+  }, [authLoading, appUser, router]);
 
   // URL error param (set by redirect from protected pages in edge cases)
   const urlError = searchParams.get("error") as AuthCheckError | null;
@@ -80,10 +45,9 @@ function LoginInner() {
     (urlError && AUTH_ERROR_MESSAGES[urlError]) ||
     null;
 
-  // Show a full-screen spinner while auth state or redirect result is being resolved.
+  // Show a full-screen spinner while auth state is being resolved.
   // Nothing should redirect while this is true.
-  const isLoading = authLoading || redirectProcessing;
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -92,6 +56,30 @@ function LoginInner() {
         </div>
       </div>
     );
+  }
+
+  async function handleGoogleSignIn() {
+    setLocalError(null);
+    setGoogleSigningIn(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      await signInWithPopup(auth, provider);
+      // AuthContext's onAuthStateChanged fires, validates, and sets appUser.
+      // authLoading becomes true → spinner shows → redirect useEffect fires.
+    } catch (err) {
+      const e = err as Partial<AuthError> | undefined;
+      if (e?.code === "auth/popup-closed-by-user" || e?.code === "auth/cancelled-popup-request") {
+        // User dismissed the popup — no message needed
+      } else if (e?.code === "auth/popup-blocked") {
+        setLocalError("Popup was blocked. Please allow popups for this site and try again.");
+      } else if (e?.code) {
+        setLocalError(`Google sign-in failed (${e.code}). Try again or use email/password instead.`);
+      } else {
+        setLocalError("Google sign-in failed. Try again or use email/password instead.");
+      }
+      setGoogleSigningIn(false);
+    }
   }
 
   async function handleEmailSignIn(e: FormEvent) {
@@ -117,15 +105,6 @@ function LoginInner() {
       }
       setEmailSigningIn(false);
     }
-  }
-
-  function handleGoogleSignIn() {
-    setLocalError(null);
-    setGoogleSigningIn(true);
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account" });
-    signInWithRedirect(auth, provider);
-    // Page navigates away to Google; getRedirectResult handles the return.
   }
 
   return (
@@ -180,7 +159,7 @@ function LoginInner() {
               />
               <path fill="none" d="M1.5 1.5h45v45h-45z" />
             </svg>
-            {googleSigningIn ? "Redirecting to Google…" : "Continue with Google"}
+            {googleSigningIn ? "Signing in with Google…" : "Continue with Google"}
           </button>
 
           {localError ? (
